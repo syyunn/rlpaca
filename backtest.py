@@ -293,7 +293,7 @@ def fetch_historical_data(symbol, timeframe, start_date, end_date=None, limit=10
         return fetch_from_yahoo(symbol, start_date, end_date)
 
 # ========== STRATEGY SIGNAL GENERATOR ==========
-def generate_signals(df, rolling_window=20, std_multiplier=1.0, entropy_threshold=1.2):
+def generate_signals(df, symbol="STOCK", rolling_window=20, std_multiplier=1.0, entropy_threshold=1.2):
     """Apply our mean-reversion + entropy strategy to generate trading signals."""
     if df is None or df.empty:
         return None
@@ -390,12 +390,12 @@ def generate_signals(df, rolling_window=20, std_multiplier=1.0, entropy_threshol
     
     # Add portfolio simulation to see $1 growth
     print("\nSimulating portfolio performance with $1 starting capital...")
-    portfolio_results = simulate_portfolio(df, initial_capital=1.0)
+    portfolio_results = simulate_portfolio(df, symbol=symbol, initial_capital=1.0)
     
     if portfolio_results:
         # Visualize portfolio performance
         visualize_portfolio(
-            symbol="Stock", 
+            symbol=symbol,  # Pass the symbol explicitly
             portfolio=portfolio_results['portfolio'],
             trades_list=portfolio_results['trades'],
             params={
@@ -604,18 +604,25 @@ def run_multi_symbol_backtest(symbols, strategy, start_date, end_date=None, time
         "max_drawdown": max_drawdown if 'max_drawdown' in locals() else None
     }
 
-# ========== PORTFOLIO BACKTESTING ==========
-def simulate_portfolio(df, initial_capital=1.0, commission=0.0):
+# ========== PORTFOLIO BACKTESTING (LONG-ONLY) ==========
+def simulate_portfolio(df, symbol="STOCK", initial_capital=1.0, commission=0.0, 
+                      use_stop_loss=True, stop_loss_pct=10.0, 
+                      use_time_exit=True, max_days_in_trade=10):
     """
-    Simulate a portfolio using the generated signals.
+    Simulate a portfolio using the generated signals with risk management (LONG-ONLY).
     
     Parameters:
     - df: DataFrame with price data and signals
+    - symbol: Stock symbol (default "STOCK" if not specified)
     - initial_capital: Starting capital (default $1)
     - commission: Commission per trade (default 0)
+    - use_stop_loss: Whether to use stop-loss exits
+    - stop_loss_pct: Stop-loss percentage (default 10%)
+    - use_time_exit: Whether to use time-based exits
+    - max_days_in_trade: Maximum days to hold a position
     
     Returns:
-    - DataFrame with portfolio performance metrics
+    - Dictionary with portfolio performance metrics and data
     """
     if df is None or df.empty:
         return None
@@ -856,7 +863,9 @@ def simulate_portfolio(df, initial_capital=1.0, commission=0.0):
     return {
         'portfolio': portfolio,
         'trades': trades,
+        'symbol': symbol,
         'metrics': {
+            'symbol': symbol,
             'total_return_pct': total_return_pct,
             'annualized_return': annualized_return,
             'sharpe_ratio': sharpe_ratio,
@@ -865,7 +874,9 @@ def simulate_portfolio(df, initial_capital=1.0, commission=0.0):
             'avg_win': avg_win,
             'avg_loss': avg_loss,
             'profit_factor': profit_factor,
-            'total_trades': total_trades
+            'total_trades': total_trades,
+            'stop_loss_exits': len(stop_loss_exits) if 'stop_loss_exits' in locals() else 0,
+            'time_exits': len(time_exits) if 'time_exits' in locals() else 0
         }
     }
 
@@ -928,7 +939,7 @@ def visualize_portfolio(symbol, portfolio, trades_list=None, params=None):
     
     # Add strategy parameters as text if provided
     if params:
-        param_text = f"Window: {params['window']}, Multiplier: {params['multiplier']}, Threshold: {params['threshold']}"
+        param_text = f"Symbol: {symbol} | Window: {params['window']}, Multiplier: {params['multiplier']}, Threshold: {params['threshold']}"
         ax1.text(0.02, 0.05, param_text, transform=ax1.transAxes, 
                 fontsize=10, bbox=dict(facecolor='white', alpha=0.8))
     
@@ -939,7 +950,7 @@ def visualize_portfolio(symbol, portfolio, trades_list=None, params=None):
     
     # Set labels
     ax1_left.set_ylabel('Portfolio Value ($)', color='b')
-    ax1_right.set_ylabel('Price ($)', color='gray')
+    ax1_right.set_ylabel(f'{symbol} Price ($)', color='gray')
     ax1.set_title(f'{symbol} - Portfolio Performance vs. Price')
     ax1.grid(True)
     
@@ -947,7 +958,7 @@ def visualize_portfolio(symbol, portfolio, trades_list=None, params=None):
     ax2 = axes[1]
     ax2.fill_between(portfolio.index, 0, portfolio['drawdown'] * 100, color='red', alpha=0.3)
     ax2.set_ylabel('Drawdown (%)')
-    ax2.set_title('Portfolio Drawdown')
+    ax2.set_title(f'{symbol} - Portfolio Drawdown')
     ax2.grid(True)
     
     # Add horizontal line at 0%
@@ -964,7 +975,7 @@ def visualize_portfolio(symbol, portfolio, trades_list=None, params=None):
     ax3.fill_between(portfolio.index, 0, portfolio['position'], where=portfolio['position'] <= 0, 
                       color='red', alpha=0.3, label='Short')
     ax3.set_ylabel('Position Size (Shares)')
-    ax3.set_title('Position Size Over Time')
+    ax3.set_title(f'{symbol} - Position Size Over Time')
     ax3.grid(True)
     ax3.legend(loc='upper left')
     
@@ -979,7 +990,7 @@ def visualize_portfolio(symbol, portfolio, trades_list=None, params=None):
     # Save figure
     filename = f"{symbol}_portfolio_performance.png"
     plt.savefig(filename, dpi=150)
-    print(f"Portfolio visualization saved as {filename}")
+    print(f"Portfolio visualization for {symbol} saved as {filename}")
     
     plt.show()
 
@@ -1041,7 +1052,8 @@ def main():
                 
                 # Generate signals with current parameter set
                 signals_df = generate_signals(
-                    data[symbol], 
+                    data[symbol],
+                    symbol=symbol,
                     rolling_window=params['window'],
                     std_multiplier=params['multiplier'],
                     entropy_threshold=params['threshold']
@@ -1076,6 +1088,7 @@ def main():
                 if counts["total"] > 0:
                     signals_df = generate_signals(
                         data[symbol],
+                        symbol=symbol,
                         rolling_window=params['window'],
                         std_multiplier=params['multiplier'],
                         entropy_threshold=params['threshold']
@@ -1098,9 +1111,10 @@ def main():
         
         for symbol in symbols:
             if symbol in data:
-                # Generate signals
+                # Generate signals with symbol parameter
                 signals_df = generate_signals(
                     data[symbol],
+                    symbol=symbol,
                     rolling_window=params['window'],
                     std_multiplier=params['multiplier'],
                     entropy_threshold=params['threshold']
