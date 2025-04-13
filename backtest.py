@@ -24,6 +24,25 @@ if not API_KEY or not API_SECRET:
 # Create a global API instance that can be used by all functions
 api = tradeapi.REST(API_KEY, API_SECRET, BASE_URL, api_version='v2')
 
+# ========== CONFIGURATION PARAMETERS ==========
+# Backtest date range
+START_DATE = "2023-01-01"  # Going back further in time
+END_DATE = "2024-04-12"    # Current date
+
+# Strategy parameters
+PARAMETER_SETS = [
+    {"name": "Ultra-Short", "window": 30, "multiplier": 0.3, "threshold": 0.8},
+    {"name": "Short", "window": 60, "multiplier": 0.4, "threshold": 0.9},
+    {"name": "Medium", "window": 120, "multiplier": 0.5, "threshold": 1.0}
+]
+
+# Symbols to test
+SYMBOLS = ["NVDA", "AAPL", "MSFT", "GOOGL", "SPY"]
+
+# Other settings
+INITIAL_CAPITAL = 10000  # Starting capital for backtests
+LONG_ONLY = True  # Whether to allow short positions
+
 # Function to fetch data from Yahoo Finance as a fallback
 def fetch_from_yahoo(symbol, start_date, end_date=None):
     """Fetch historical data from Yahoo Finance."""
@@ -390,7 +409,12 @@ def generate_signals(df, symbol="STOCK", rolling_window=20, std_multiplier=1.0, 
     
     # Add portfolio simulation to see $1 growth
     print("\nSimulating portfolio performance with $1 starting capital...")
-    portfolio_results = simulate_portfolio(df, symbol=symbol, initial_capital=1.0)
+    portfolio_results = simulate_portfolio(
+        df, 
+        symbol=symbol, 
+        initial_capital=1.0,
+        long_only=LONG_ONLY  # Use the global parameter
+    )
     
     if portfolio_results:
         # Visualize portfolio performance
@@ -434,6 +458,7 @@ def run_multi_symbol_backtest(symbols, strategy, start_date, end_date=None, time
     for symbol in symbols:
         try:
             symbol_data = fetch_historical_data(symbol, timeframe, start_date, end_date)
+            print("symbol_data", symbol_data)
             if symbol_data is not None and not symbol_data.empty:
                 # Apply strategy to generate signals
                 symbol_data = strategy.generate_signals(symbol_data)
@@ -607,9 +632,10 @@ def run_multi_symbol_backtest(symbols, strategy, start_date, end_date=None, time
 # ========== PORTFOLIO BACKTESTING (LONG-ONLY) ==========
 def simulate_portfolio(df, symbol="STOCK", initial_capital=1.0, commission=0.0, 
                       use_stop_loss=True, stop_loss_pct=10.0, 
-                      use_time_exit=True, max_days_in_trade=10):
+                      use_time_exit=True, max_days_in_trade=10,
+                      long_only=True):
     """
-    Simulate a portfolio using the generated signals with risk management (LONG-ONLY).
+    Simulate a portfolio using the generated signals with risk management.
     
     Parameters:
     - df: DataFrame with price data and signals
@@ -620,6 +646,7 @@ def simulate_portfolio(df, symbol="STOCK", initial_capital=1.0, commission=0.0,
     - stop_loss_pct: Stop-loss percentage (default 10%)
     - use_time_exit: Whether to use time-based exits
     - max_days_in_trade: Maximum days to hold a position
+    - long_only: If True, only allow long positions (no shorting)
     
     Returns:
     - Dictionary with portfolio performance metrics and data
@@ -710,23 +737,25 @@ def simulate_portfolio(df, symbol="STOCK", initial_capital=1.0, commission=0.0,
                     'commission': commission
                 })
             
-            # Calculate short position size (use all cash)
-            available_cash = portfolio.loc[portfolio.index[i], 'cash']
-            max_shares = available_cash / (current_price + commission) if commission > 0 else available_cash / current_price
-            
-            # Short sell
-            portfolio.loc[portfolio.index[i], 'position'] = -max_shares
-            portfolio.loc[portfolio.index[i], 'cash'] = available_cash + (max_shares * current_price)
-            
-            # Record the trade
-            trades.append({
-                'date': portfolio.index[i],
-                'action': 'SHORT',
-                'price': current_price,
-                'shares': max_shares,
-                'value': max_shares * current_price,
-                'commission': commission
-            })
+            # Only go short if long_only is False
+            if not long_only:
+                # Calculate short position size (use all cash)
+                available_cash = portfolio.loc[portfolio.index[i], 'cash']
+                max_shares = available_cash / (current_price + commission) if commission > 0 else available_cash / current_price
+                
+                # Short sell
+                portfolio.loc[portfolio.index[i], 'position'] = -max_shares
+                portfolio.loc[portfolio.index[i], 'cash'] = available_cash + (max_shares * current_price)
+                
+                # Record the trade
+                trades.append({
+                    'date': portfolio.index[i],
+                    'action': 'SHORT',
+                    'price': current_price,
+                    'shares': max_shares,
+                    'value': max_shares * current_price,
+                    'commission': commission
+                })
         
         # Update holdings value and equity
         portfolio.loc[portfolio.index[i], 'holdings'] = portfolio.loc[portfolio.index[i], 'position'] * current_price
@@ -1011,48 +1040,41 @@ def main():
         subprocess.check_call(["pip", "install", "yfinance"])
         print("yfinance installed successfully.")
     
-    # Use a longer timeframe to increase chance of mean reversion opportunities
-    start_date = "2023-01-01"  # Going back further in time
-    end_date = "2024-04-12"    # Current date
-    
-    print(f"Backtesting from {start_date} to {end_date}")
+    # Display configuration
+    print(f"Backtesting from {START_DATE} to {END_DATE}")
+    print(f"Testing {len(SYMBOLS)} symbols: {', '.join(SYMBOLS)}")
+    print(f"Strategy mode: {'Long-only' if LONG_ONLY else 'Long-short'}")
+    print(f"Initial capital: ${INITIAL_CAPITAL:.2f}")
     
     # Use daily timeframe for more stable signals
     timeframe = tradeapi.TimeFrame.Day
     
     # Process each symbol
-    symbols = ["NVDA", "AAPL", "MSFT", "GOOGL", "SPY"]
     data = {}
     
-    # Try different parameter combinations
-    parameter_sets = [
-        {"name": "Default", "window": 20, "multiplier": 1.0, "threshold": 1.2},
-        {"name": "Less Strict", "window": 20, "multiplier": 0.8, "threshold": 1.5},
-        {"name": "More Responsive", "window": 10, "multiplier": 1.0, "threshold": 1.5},
-        {"name": "Aggressive", "window": 15, "multiplier": 0.5, "threshold": 2.0}
-    ]
-    
     print("\nTesting multiple parameter combinations:")
-    for params in parameter_sets:
+    for params in PARAMETER_SETS:
         print(f"\n{params['name']} configuration:")
         print(f"  Window: {params['window']}, Multiplier: {params['multiplier']}, Threshold: {params['threshold']}")
         
         symbol_results = {}
-        for symbol in symbols:
+        for symbol in SYMBOLS:
             try:
                 # Fetch data (only need to do this once)
                 if symbol not in data:
                     print(f"\nProcessing {symbol}...")
-                    df = fetch_historical_data(symbol, timeframe, start_date, end_date)
+                    df = fetch_historical_data(symbol, timeframe, START_DATE, END_DATE)
+                    print("df - shape", df.shape)
+                    print("df - columns", df.columns)
                     if df is not None and not df.empty:
-                        data[symbol] = df
+                        data[symbol] = df # store the dataframe in the data dictionary
                     else:
                         print(f"No data available for {symbol}")
                         continue
                 
                 # Generate signals with current parameter set
                 signals_df = generate_signals(
-                    data[symbol],
+                    data[symbol], # this is symobl level time series data; with all the columns - close high low trade-count open volume vwap
                     symbol=symbol,
                     rolling_window=params['window'],
                     std_multiplier=params['multiplier'],
@@ -1106,10 +1128,10 @@ def main():
     
     portfolio_metrics = {}
     
-    for params in parameter_sets:
+    for params in PARAMETER_SETS:
         print(f"\n{params['name']} configuration:")
         
-        for symbol in symbols:
+        for symbol in SYMBOLS:
             if symbol in data:
                 # Generate signals with symbol parameter
                 signals_df = generate_signals(
