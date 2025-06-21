@@ -53,10 +53,11 @@ This document describes our end-to-end streaming RL trading system that connects
 ### 4. Trading Execution
 - **API**: Alpaca Trading API
 - **Order Types**: Limit orders only (no market orders)
+- **Position Sizing**: Capital-based (% of buying power)
 - **Risk Controls**:
-  - Max 10 shares per order
-  - Position limits
-  - Fractional share support
+  - Minimum order value: $1 (Alpaca constraint)
+  - Risk managed by capital allocation
+  - Fractional share support (0.000001 minimum)
 
 ## Data Flow
 

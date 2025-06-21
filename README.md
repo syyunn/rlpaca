@@ -114,6 +114,8 @@ docker-compose -f docker-compose.sac-executor.yml logs -f
 | Execution | Real broker integration | Simulation only |
 | Decision Frequency | Every 5 seconds | Daily |
 | Architecture | Microservices + Kafka | Monolithic |
+| Position Sizing | Flexible % of capital | Fixed share amounts |
+| Budget Scaling | $1k to $1M+ with same model | Requires retraining |
 
 ## 📚 Documentation
 
@@ -127,12 +129,14 @@ docker-compose -f docker-compose.sac-executor.yml logs -f
 - Alpaca account (free paper trading)
 - ~2GB disk space
 
-## 📈 Performance
+## 📈 Performance & Flexibility
 
 - Processes ~4,680 decisions per trading day
 - Sub-100ms model inference latency
 - Supports fractional share trading
-- Long-only strategy with risk management
+- Long-only strategy with capital-based position sizing
+- **Flexible Deployment**: Start with $1k, scale to $100k+ without retraining
+- **No Fixed Limits**: Position size based on available capital, not arbitrary constraints
 
 ## 🤝 Contributing
 

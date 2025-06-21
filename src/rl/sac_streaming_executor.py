@@ -286,14 +286,21 @@ class SACStreamingExecutor:
             if position_delta > 0:  # Buy
                 limit_price = mid_price * (1 + limit_offset_bps * 0.0001)
                 side = 'buy'
-                # Calculate max shares based on buying power and position limits
+                # Calculate max shares based ONLY on buying power (no artificial limits)
                 account = self.api.get_account()
-                max_shares = min(
-                    float(account.buying_power) / limit_price,
-                    default_config.MAX_POSITION - abs(current_position)  # Use config max position
-                )
+                max_shares = float(account.buying_power) / limit_price
+                
+                # Calculate order size based on model's action
+                desired_qty = abs(position_delta) * max_shares
+                
+                # Apply only Alpaca's minimum constraints
+                if desired_qty * limit_price < default_config.MIN_ORDER_VALUE:
+                    # Skip orders below $1 minimum
+                    logger.info(f"Order value ${desired_qty * limit_price:.2f} below Alpaca minimum ${default_config.MIN_ORDER_VALUE}")
+                    return
+                    
                 qty = max(default_config.MIN_ORDER_SIZE, 
-                         round(abs(position_delta) * max_shares, default_config.ORDER_SIZE_PRECISION))
+                         round(desired_qty, default_config.ORDER_SIZE_PRECISION))
             else:  # Sell
                 # LONG-ONLY: Can only sell if we have a position
                 if current_position <= 0:
@@ -302,8 +309,16 @@ class SACStreamingExecutor:
                     
                 limit_price = mid_price * (1 - abs(limit_offset_bps) * 0.0001)
                 side = 'sell'
-                # Only sell what we have
-                qty = max(0.01, min(current_position, abs(position_delta) * current_position))
+                # Sell percentage of current position
+                desired_qty = abs(position_delta) * current_position
+                
+                # Apply only Alpaca's minimum constraints  
+                if desired_qty * limit_price < default_config.MIN_ORDER_VALUE:
+                    logger.info(f"Order value ${desired_qty * limit_price:.2f} below Alpaca minimum ${default_config.MIN_ORDER_VALUE}")
+                    return
+                    
+                qty = max(default_config.MIN_ORDER_SIZE, 
+                         round(desired_qty, default_config.ORDER_SIZE_PRECISION))
                 
             logger.info(f"📤 SUBMITTING ORDER: {side.upper()} {qty} @ ${limit_price:.2f}")
             logger.info(f"   Mid price: ${mid_price:.2f}, Offset: {limit_offset_bps:.1f} bps")
@@ -318,7 +333,7 @@ class SACStreamingExecutor:
             
             order = self.api.submit_order(
                 symbol=self.trading_symbol,
-                qty=round(qty, 6),  # Alpaca supports up to 6 decimal places for fractional shares
+                qty=float(round(qty, 6)),  # Convert to native Python float
                 side=side,
                 type='limit',
                 time_in_force='day',

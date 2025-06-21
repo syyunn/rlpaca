@@ -111,7 +111,7 @@ def train_long_only_model(timesteps=1000, date='2025-06-20', model_name='long_on
         historical_bars=minute_bars,
         decision_interval_seconds=default_config.DECISION_INTERVAL_SECONDS,
         initial_capital=default_config.INITIAL_CAPITAL,
-        max_position=default_config.MAX_POSITION,  # Max shares from config
+        max_position=None,  # No artificial position limits - model has full freedom
         transaction_cost=default_config.TRANSACTION_COST
     )
     
@@ -148,7 +148,7 @@ def train_long_only_model(timesteps=1000, date='2025-06-20', model_name='long_on
     logger.info("Model will learn:")
     logger.info("  - Can only buy (no short selling)")
     logger.info("  - Can only sell if has position")
-    logger.info("  - Position limits (max 1000 shares)")
+    logger.info("  - Position sizing based on available capital (no fixed limits)")
     
     start_time = datetime.now()
     

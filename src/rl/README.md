@@ -64,6 +64,21 @@ Example: If max_position=1000 shares and current_position=200:
 
 This approach ensures the model's decisions are always executable and safe in live trading.
 
+### Update: Flexible Capital-Based Deployment
+
+The system now uses **percentage-based position sizing** instead of fixed limits:
+
+1. **No Fixed Position Limit**: Removed the 1000-share maximum constraint
+2. **Capital-Based Sizing**: Actions represent % of available buying power
+3. **Gradual Scaling**: Deploy with small budgets ($1k) and scale up as confidence grows
+
+Example with different budgets:
+- **$1,000 account**: action=1.0 → Buy ~7 shares of NVDA
+- **$10,000 account**: action=1.0 → Buy ~74 shares  
+- **$100,000 account**: action=1.0 → Buy ~740 shares
+
+The same trained model adapts to any account size automatically!
+
 ## Example Decision Flow
 
 ```
@@ -81,10 +96,11 @@ Order: BUY 7.5 shares of NVDA @ $134.59 limit
 ## Key Features
 
 - **Long-only**: No short selling (enforced constraint)
-- **Fractional shares**: Can trade 0.01+ shares
-- **Risk limits**: Max 10 shares per order
+- **Fractional shares**: Can trade 0.000001+ shares (Alpaca minimum)
+- **Capital-based sizing**: No fixed position limits - uses % of available capital
 - **24/7 capable**: Supports extended hours trading
 - **Sub-second latency**: <100ms from data to decision
+- **Budget flexible**: Same model works from $1k to $1M+ accounts
 
 ## Configuration
 

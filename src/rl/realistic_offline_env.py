@@ -30,7 +30,7 @@ class RealisticOfflineEnv(gym.Env):
         historical_bars: pd.DataFrame,
         decision_interval_seconds: int = 5,
         initial_capital: float = 100000,
-        max_position: float = 1000,
+        max_position: float = None,  # None = no position limits
         transaction_cost: float = 0.001,
         max_ticks_in_buffer: int = 100,
         tick_buffer_max_age_seconds: int = 60,
@@ -50,10 +50,7 @@ class RealisticOfflineEnv(gym.Env):
         
         # Trading parameters
         self.initial_capital = initial_capital
-        self.max_position = max_position
-        # Add Alpaca-specific constraints
-        self.max_short_position = -max_position  # Can short up to max_position
-        self.position_limit_buffer = 0.1  # When near limit, can only trade 0.1 shares
+        self.max_position = max_position  # None means no limit
         self.transaction_cost = transaction_cost
         self.order_latency_ms = order_latency_ms
         

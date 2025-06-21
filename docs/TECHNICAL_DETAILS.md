@@ -95,17 +95,25 @@ The model outputs a **2-dimensional continuous action**:
 
 ## Trading Constraints
 
-### Position Limits
+### Position Sizing
 - **Long-only**: No short selling allowed
-- **Maximum position**: Configurable (default: 1000 shares)
-- **Fractional shares**: Minimum 0.01 shares per trade
-- **Conservative sizing**: Max 10 shares per order for safety
+- **Capital-based**: Position size = action × available buying power
+- **No fixed limits**: Model has full freedom within capital constraints
+- **Fractional shares**: Minimum 0.000001 shares (Alpaca limit)
 
 ### Risk Management
-- Position scaling based on available buying power
-- Transaction costs factored into decisions
+- Risk controlled via capital allocation (start small, scale up)
+- Commission-free trading (Alpaca has $0 commissions)
 - End-of-day position closure enforced during training
 - Market/extended hours trading supported
+
+### Flexible Deployment Strategy
+1. **Week 1**: Deploy with $1,000 (max loss = $1,000)
+2. **Week 2**: Scale to $5,000 if profitable
+3. **Month 1**: Increase to $10,000-$50,000
+4. **Month 2+**: Full capital deployment
+
+The model automatically adjusts position sizes based on available capital.
 
 ## Data Flow
 

@@ -9,17 +9,19 @@ from typing import Optional
 class TradingConfig:
     """Configuration for trading constraints and parameters"""
     
-    # Position limits
-    MAX_POSITION: float = 1000.0  # Maximum shares allowed (long)
+    # Position constraints  
     MIN_POSITION: float = 0.0     # Minimum position (0 = long-only, negative = allow shorts)
+    # NOTE: No MAX_POSITION - model has full freedom to use available capital
     
-    # Order constraints
-    MIN_ORDER_SIZE: float = 0.1   # Minimum fractional shares per order
-    ORDER_SIZE_PRECISION: int = 2  # Decimal places for order size
+    # Alpaca API constraints only
+    MIN_ORDER_SIZE: float = 0.000001   # Alpaca minimum fractional shares  
+    MIN_ORDER_VALUE: float = 1.0       # Alpaca minimum $1 order value
+    ORDER_SIZE_PRECISION: int = 6      # Alpaca supports up to 6 decimal places
     
-    # Capital and risk
+    # Capital and costs
     INITIAL_CAPITAL: float = 100000.0
-    TRANSACTION_COST: float = 0.001  # 0.1% per trade
+    TRANSACTION_COST: float = 0.0      # Alpaca has commission-free trading
+    # Note: Small regulatory fees (SEC/FINRA) may apply but are negligible for RL training
     
     # Timing
     DECISION_INTERVAL_SECONDS: int = 5
@@ -66,10 +68,6 @@ class TradingConfig:
             self.POSITION_STATE_FEATURES  # 5
         )  # Total: 5185
     
-    @property
-    def max_position_range(self) -> float:
-        """Maximum position range for action scaling"""
-        return self.MAX_POSITION - self.MIN_POSITION
 
 
 # Default configuration instance

@@ -116,6 +116,8 @@ Model action: position_delta=1.000, limit_offset=-10.0 bps
 2. **No Manual Aggregation**: Eliminates discrepancies from computing bars differently
 3. **Real Features in Production**: The executor now uses actual bar data instead of zeros
 4. **Complete State**: Model sees the same 5,185-dimensional state in both environments
+5. **Flexible Position Sizing**: No fixed limits - model uses percentage of available capital
+6. **Budget Scalable**: Same model works from $1k to $1M+ accounts without retraining
 
 ## Understanding the Data Flow
 
