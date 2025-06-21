@@ -137,21 +137,12 @@ class RealisticOfflineEnv(gym.Env):
         portfolio_after = self.capital + self.position * new_price
         reward = (portfolio_after - portfolio_before) / portfolio_before * 100
         
-        # Penalize constraint violations
-        if hasattr(self, 'constraint_violations') and self.constraint_violations:
-            constraint_penalty = -0.1 * len(self.constraint_violations)  # -0.1% per violation
-            reward += constraint_penalty
-        
         # 7. Check if done
         done = self._is_end_of_day()
         
-        # Apply end-of-day penalty for open positions
-        if done and abs(self.position) > 0.01:
-            # Strong penalty for holding positions overnight
-            position_penalty = -2.0 * abs(self.position) / self.max_position  # -2% per full position
-            reward += position_penalty
-            self.constraint_violations.append('overnight_position')
-            logger.info(f"End of day penalty: {position_penalty:.2f}% for {self.position:.2f} shares")
+        # No end-of-day penalty - let the model learn naturally
+        # If holding overnight is profitable, it should do it
+        # If day trading is better, market returns will teach that
         
         # 8. Advance time
         self.current_time = self.next_decision_time
@@ -165,8 +156,7 @@ class RealisticOfflineEnv(gym.Env):
             'execution_price': execution_price,
             'ticks_in_interval': len([t for t in self.tick_buffer 
                                      if t['timestamp'] >= decision_time]),
-            'total_ticks_seen': self.tick_pointer,
-            'constraint_violations': getattr(self, 'constraint_violations', [])
+            'total_ticks_seen': self.tick_pointer
         }
         
         return self._get_state(), reward, done, info
@@ -211,9 +201,6 @@ class RealisticOfflineEnv(gym.Env):
         """Execute trade at given price"""
         position_delta = action[0]  # -1 to 1
         
-        # Track if we hit any constraints
-        self.constraint_violations = []
-        
         if abs(position_delta) < 0.1:  # No significant action
             return
             
@@ -251,7 +238,6 @@ class RealisticOfflineEnv(gym.Env):
                 target_delta = min(abs(position_delta) * self.position, self.position)
             else:
                 # No short selling allowed - action does nothing
-                self.constraint_violations.append('no_short_selling')
                 target_delta = 0  # No change in position
             
             if target_delta > 0.01:

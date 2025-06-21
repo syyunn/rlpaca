@@ -50,3 +50,5 @@ checkpoints/
 postgres-data/
 pgadmin-data/full_1epoch_model.zip
 CLAUDE.md
+
+*.zip
