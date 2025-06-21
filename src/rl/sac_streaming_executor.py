@@ -17,6 +17,9 @@ import alpaca_trade_api as tradeapi
 from stable_baselines3 import SAC
 import structlog
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from src.config.trading_config import default_config
+
 logger = structlog.get_logger()
 
 class SACStreamingExecutor:
@@ -198,11 +201,11 @@ class SACStreamingExecutor:
         """Create observation matching training environment"""
         features = []
         
-        # Recent trades (500 dims)
-        tick_matrix = np.zeros((100, 5))
+        # Recent trades (tick_buffer_size * tick_features dims)
+        tick_matrix = np.zeros((default_config.TICK_BUFFER_SIZE, default_config.TICK_FEATURES))
         trades = list(self.trade_buffer)
         
-        for i in range(min(100, len(trades))):
+        for i in range(min(default_config.TICK_BUFFER_SIZE, len(trades))):
             t = trades[-(i+1)]
             tick_matrix[i] = [
                 t.get('price', 0),
@@ -213,11 +216,11 @@ class SACStreamingExecutor:
             ]
         features.extend(tick_matrix.flatten())
         
-        # Minute bars from Alpaca (4680 dims = 390 bars * 12 features)
-        minute_matrix = np.zeros((390, 12))
+        # Minute bars from Alpaca (minute_bars_count * minute_bar_features dims)
+        minute_matrix = np.zeros((default_config.minute_bars_count, default_config.MINUTE_BAR_FEATURES))
         bars = list(self.minute_bars)
         
-        for i in range(min(390, len(bars))):
+        for i in range(min(default_config.minute_bars_count, len(bars))):
             bar = bars[i]  # Use chronological order for bars
             minute_matrix[i] = [
                 bar.get('open', 0),
@@ -283,14 +286,14 @@ class SACStreamingExecutor:
             if position_delta > 0:  # Buy
                 limit_price = mid_price * (1 + limit_offset_bps * 0.0001)
                 side = 'buy'
-                # Conservative sizing for safety
+                # Calculate max shares based on buying power and position limits
                 account = self.api.get_account()
                 max_shares = min(
                     float(account.buying_power) / limit_price,
-                    10,  # Max 10 shares per order
-                    1000 - abs(current_position)
+                    default_config.MAX_POSITION - abs(current_position)  # Use config max position
                 )
-                qty = max(0.1, round(abs(position_delta) * max_shares, 2))  # Allow fractional shares
+                qty = max(default_config.MIN_ORDER_SIZE, 
+                         round(abs(position_delta) * max_shares, default_config.ORDER_SIZE_PRECISION))
             else:  # Sell
                 # LONG-ONLY: Can only sell if we have a position
                 if current_position <= 0:

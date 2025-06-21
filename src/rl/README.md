@@ -42,6 +42,28 @@ action[1]: Limit Offset [-10.0 to 10.0]
            +10 bps = Pay premium
 ```
 
+### Why Maximum Allowed Position?
+
+The "maximum allowed" design is crucial for practical deployment:
+
+1. **Risk Management**: Prevents the model from taking excessive positions that could blow up the account. The maximum is a hard safety limit.
+
+2. **Capital Efficiency**: By expressing actions as fractions of maximum, the model learns relative position sizing rather than absolute amounts. This makes the policy transferable across different account sizes.
+
+3. **Regulatory Compliance**: Many brokers and regulations impose position limits. This design ensures we never exceed them.
+
+4. **Training Stability**: During RL training, bounded actions prevent the agent from exploring catastrophic position sizes that would end episodes prematurely.
+
+5. **Real-world Constraints**: In production, you have finite buying power. The model learns to work within realistic constraints rather than assuming infinite capital.
+
+Example: If max_position=1000 shares and current_position=200:
+- action[0]=1.0 → Buy 800 shares (to reach max)
+- action[0]=0.5 → Buy 400 shares  
+- action[0]=-0.5 → Sell 100 shares
+- action[0]=-1.0 → Sell all 200 shares
+
+This approach ensures the model's decisions are always executable and safe in live trading.
+
 ## Example Decision Flow
 
 ```

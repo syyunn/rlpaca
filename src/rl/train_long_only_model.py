@@ -17,6 +17,8 @@ from stable_baselines3.common.callbacks import EvalCallback, BaseCallback
 from realistic_offline_env import RealisticOfflineEnv
 import json
 import structlog
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from src.config.trading_config import default_config
 
 logger = structlog.get_logger()
 
@@ -103,14 +105,14 @@ def train_long_only_model(timesteps=1000, date='2025-06-20', model_name='long_on
     ticks, minute_bars = load_training_data(date)
     logger.info(f"Loaded {len(ticks)} ticks")
     
-    # Create environment with long-only constraint
+    # Create environment with long-only constraint using config
     env = RealisticOfflineEnv(
         historical_ticks=ticks,
         historical_bars=minute_bars,
-        decision_interval_seconds=5,
-        initial_capital=100000,
-        max_position=1000,  # Max 1000 shares long
-        transaction_cost=0.001
+        decision_interval_seconds=default_config.DECISION_INTERVAL_SECONDS,
+        initial_capital=default_config.INITIAL_CAPITAL,
+        max_position=default_config.MAX_POSITION,  # Max shares from config
+        transaction_cost=default_config.TRANSACTION_COST
     )
     
     logger.info("Environment created - LONG-ONLY mode enforced")
