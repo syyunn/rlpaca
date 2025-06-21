@@ -1,0 +1,100 @@
+# SAC Streaming Executor
+
+Real-time reinforcement learning trading executor that consumes tick data from Kafka and makes trading decisions using a Soft Actor-Critic (SAC) model.
+
+## What It Does
+
+Every 5 seconds, the executor:
+1. **Reads** latest market data from Kafka (quotes & trades)
+2. **Constructs** a 5,185-dimensional observation vector
+3. **Predicts** trading action using pre-trained SAC model
+4. **Executes** trades via Alpaca API based on model output
+
+## State Space: 5,185 Dimensions
+
+```
+┌─────────────────────────────────────────┐
+│ Recent Ticks (500 dims)                 │
+│ - Last 100 ticks × 5 features each      │
+│ - Bid/Ask prices, sizes, timestamps     │
+├─────────────────────────────────────────┤
+│ Minute Bars (4,680 dims)                │
+│ - 390 minutes × 12 features each        │  
+│ - OHLCV, VWAP, returns, time features   │
+├─────────────────────────────────────────┤
+│ Position State (5 dims)                 │
+│ - Current position, cash, market value  │
+│ - Portfolio return, day progress        │
+└─────────────────────────────────────────┘
+```
+
+## Action Space: 2 Dimensions
+
+```
+action[0]: Position Delta [-1.0 to 1.0]
+           -1.0 = Sell everything
+            0.0 = Hold
+            1.0 = Buy maximum allowed
+
+action[1]: Limit Offset [-10.0 to 10.0] 
+           -10 bps = Demand discount
+             0 bps = Trade at mid-price  
+           +10 bps = Pay premium
+```
+
+## Example Decision Flow
+
+```
+Time: 10:35:20
+Data: 47 quotes, 23 trades in buffer
+State: [134.56, 134.58, 100, 200, ..., 0.5, 50000, 67.28, 0.0001, 0.26]
+       └─ Latest quote data ─┘         └─ Position state ─┘
+
+Model Output: [0.75, 2.0]
+Interpretation: Buy 75% of max size, pay up to 2 bps above mid
+
+Order: BUY 7.5 shares of NVDA @ $134.59 limit
+```
+
+## Key Features
+
+- **Long-only**: No short selling (enforced constraint)
+- **Fractional shares**: Can trade 0.01+ shares
+- **Risk limits**: Max 10 shares per order
+- **24/7 capable**: Supports extended hours trading
+- **Sub-second latency**: <100ms from data to decision
+
+## Configuration
+
+The executor uses these environment variables:
+- `KAFKA_SYMBOL`: Symbol to read from Kafka (e.g., FAKEPACA)
+- `TRADING_SYMBOL`: Symbol to trade on Alpaca (e.g., NVDA)
+- `MODEL_PATH`: Path to trained SAC model
+- `KAFKA_BOOTSTRAP_SERVERS`: Kafka connection string
+
+## Files
+
+- `sac_streaming_executor.py` - Main executor implementation
+- `realistic_offline_env.py` - Training environment matching production
+- `train_single_day.py` - Model training script
+- `kafka_data_bridge.py` - Kafka consumer utilities
+
+## Quick Start
+
+```bash
+# Ensure Kafka is running with market data
+docker-compose -f docker-compose.minimal-alpaca.yml up -d
+
+# Start the executor
+docker-compose -f docker-compose.sac-executor.yml up -d
+
+# Watch it trade
+docker-compose -f docker-compose.sac-executor.yml logs -f
+```
+
+## Model Details
+
+- **Algorithm**: Soft Actor-Critic (SAC)
+- **Network**: MLP with [256, 128, 64] hidden units
+- **Training objective**: 1% daily returns with risk control
+- **Training data**: Historical tick data via TimescaleDB

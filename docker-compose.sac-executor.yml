@@ -1,0 +1,27 @@
+services:
+  sac-executor:
+    build:
+      context: .
+      dockerfile: Dockerfile.sac_executor
+    container_name: sac-executor
+    networks:
+      - polygon-kafka-network
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092  # Internal Docker address
+      ALPACA_PAPER_API_KEY: ${ALPACA_PAPER_API_KEY}
+      ALPACA_PAPER_API_SECRET: ${ALPACA_PAPER_API_SECRET}
+      ALPACA_TRADING_MODE: paper
+      MODEL_PATH: /app/streaming_model.zip
+      KAFKA_SYMBOL: FAKEPACA   # Consume fake data for testing
+      TRADING_SYMBOL: NVDA     # Trade real NVDA
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./src:/app/src
+      - ./streaming_model.zip:/app/streaming_model.zip
+      - ./logs:/app/logs
+    command: python /app/src/rl/sac_streaming_executor.py
+    restart: unless-stopped
+
+networks:
+  polygon-kafka-network:
+    external: true

@@ -1,0 +1,35 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install additional dependencies for RL
+RUN pip install --no-cache-dir \
+    stable-baselines3==2.1.0 \
+    gymnasium==0.29.1 \
+    aiokafka==0.10.0 \
+    alpaca-trade-api==3.0.2
+
+# Copy source code
+COPY src/ /app/src/
+
+# Copy models directory (mount as volume in production)
+COPY models/ /app/models/
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Run the SAC executor
+CMD ["python", "-m", "src.rl.sac_kafka_alpaca_executor"]
