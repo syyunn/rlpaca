@@ -25,11 +25,8 @@ RUN pip install --no-cache-dir \
 # Copy source code
 COPY src/ /app/src/
 
-# Copy models directory (mount as volume in production)
-COPY models/ /app/models/
-
 # Set Python path
 ENV PYTHONPATH=/app
 
 # Run the SAC executor
-CMD ["python", "-m", "src.rl.sac_kafka_alpaca_executor"]
+CMD ["python", "/app/src/rl/sac_streaming_executor.py"]

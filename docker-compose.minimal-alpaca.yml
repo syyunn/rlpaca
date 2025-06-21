@@ -66,25 +66,6 @@ services:
       - ./logs:/app/logs
     restart: unless-stopped
 
-  trading-dashboard:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.dashboard
-    container_name: trading-dashboard
-    depends_on:
-      - kafka
-      - alpaca-producer
-    ports:
-      - "15002:15002"
-    environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      PORT: 15002
-    env_file:
-      - .env
-    volumes:
-      - ./src:/app/src
-    restart: unless-stopped
-
 networks:
   default:
     name: polygon-kafka-network

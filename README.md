@@ -1,8 +1,30 @@
-# Real-Time ML Trading System
+```
+    ____  __                         
+   / __ \/ /___  ____ __________ _   
+  / /_/ / / __ \/ __ `/ ___/ __ `/   
+ / _, _/ / /_/ / /_/ / /__/ /_/ /    
+/_/ |_/_/ .___/\__,_/\___/\__,_/     
+       /_/                           
+       
+  🤖 RL + 🦙 Alpaca = 📈 Real-Time Trading
+```
+
+# RLpaca: Real-Time ML Trading System
 
 A production-ready ML trading system that uses real tick data and streaming architecture - demonstrating capabilities beyond traditional daily-bar systems like FinRL.
 
-## Key Features
+```
+┌─────────────────┐     ┌──────────────┐     ┌─────────────────┐
+│   📊 Market     │     │  🧠 RL Model │     │  💰 Trading     │
+│     Data        │────▶│    (SAC)     │────▶│    Orders       │
+│  (Tick-level)   │     │ 5,185 dims   │     │  (Fractional)   │
+└─────────────────┘     └──────────────┘     └─────────────────┘
+         │                      │                      │
+         └──────────────────────┴──────────────────────┘
+                        Every 5 seconds
+```
+
+## 🚀 Key Features
 
 - **Real-time tick streaming** from Alpaca WebSocket
 - **Apache Kafka** for event streaming (quotes, trades, bars)
@@ -10,14 +32,14 @@ A production-ready ML trading system that uses real tick data and streaming arch
 - **5,185-dimensional state space** capturing market microstructure
 - **Production deployment** with Docker containers
 
-## Quick Start
+## ⚡ Quick Start
 
 ### 1. Setup Environment
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/poly-fka.git
-cd poly-fka
+git clone https://github.com/syyunn/rlpaca.git
+cd rlpaca
 pip install -r requirements.txt
 
 # Configure Alpaca credentials
@@ -45,7 +67,6 @@ python src/rl/train_long_only_model.py --timesteps 50000
 cp long_only_sac_model.zip streaming_model.zip
 
 # Start streaming infrastructure
-docker-compose -f docker-compose.minimal-kafka.yml up -d
 docker-compose -f docker-compose.minimal-alpaca.yml up -d
 docker-compose -f docker-compose.sac-executor.yml up -d
 
@@ -53,35 +74,81 @@ docker-compose -f docker-compose.sac-executor.yml up -d
 docker-compose -f docker-compose.sac-executor.yml logs -f
 ```
 
-## Architecture
+## 🏗️ Architecture
 
 ```
-Alpaca WebSocket → Kafka Topics → RL Executor → Trading Orders
-                    ├── quotes
-                    ├── trades  
-                    └── bars
+        ┌─────────────────────────────────────────────────┐
+        │                 Alpaca WebSocket                 │
+        └────────────┬───────────┬──────────┬─────────────┘
+                     │           │          │
+                     ▼           ▼          ▼
+              ┌──────────┐ ┌──────────┐ ┌──────────┐
+              │  Quotes  │ │  Trades  │ │   Bars   │
+              └────┬─────┘ └────┬─────┘ └────┬─────┘
+                   │            │            │
+                   └────────────┴────────────┘
+                                │
+                          Apache Kafka
+                                │
+                     ┌──────────▼──────────┐
+                     │   RL Executor       │
+                     │  - Model Inference  │
+                     │  - Risk Management  │
+                     │  - Order Placement  │
+                     └──────────┬──────────┘
+                                │
+                          Trading Orders
+                                │
+                     ┌──────────▼──────────┐
+                     │   Alpaca Paper/Live │
+                     │     Trading API     │
+                     └─────────────────────┘
 ```
 
-## Why Better Than FinRL?
+## 🎯 Why Better Than FinRL?
 
-1. **Tick-level data**: Captures real market microstructure
-2. **Streaming architecture**: Built for production, not just backtesting
-3. **Consistent pipeline**: Same data format in training and production
-4. **Live execution**: Actually submits orders to broker
-5. **Real-time decisions**: Acts every 5 seconds, not daily
+| Feature | RLpaca | FinRL |
+|---------|---------|--------|
+| Data Granularity | Tick-level (real-time) | Daily bars |
+| Deployment | Production-ready streaming | Backtesting only |
+| Execution | Real broker integration | Simulation only |
+| Decision Frequency | Every 5 seconds | Daily |
+| Architecture | Microservices + Kafka | Monolithic |
 
-## Documentation
+## 📚 Documentation
 
 - [Quick Start Guide](docs/QUICKSTART.md) - Complete walkthrough
-- [SAC Executor Details](docs/SAC_EXECUTOR_README.md) - Model architecture
+- [Technical Details](docs/TECHNICAL_DETAILS.md) - Model architecture
 
-## Requirements
+## 🛠️ Requirements
 
 - Python 3.8+
 - Docker & Docker Compose
 - Alpaca account (free paper trading)
 - ~2GB disk space
 
-## Support
+## 📈 Performance
 
-For issues or questions, please open a GitHub issue.
+- Processes ~4,680 decisions per trading day
+- Sub-100ms model inference latency
+- Supports fractional share trading
+- Long-only strategy with risk management
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📝 License
+
+MIT License - see LICENSE file for details
+
+## 🙏 Acknowledgments
+
+Built with ❤️ using:
+- [Alpaca Markets API](https://alpaca.markets/)
+- [Stable Baselines3](https://stable-baselines3.readthedocs.io/)
+- [Apache Kafka](https://kafka.apache.org/)
+
+---
+
+**⚠️ Disclaimer**: This is for educational purposes. Always test thoroughly with paper trading before using real money.

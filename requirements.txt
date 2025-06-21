@@ -7,6 +7,8 @@ pyarrow>=14.0.0
 
 # Alpaca API
 alpaca-py>=0.13.3
+alpaca-trade-api>=3.0.0
+websocket-client>=1.6.0
 
 # Streaming/Kafka
 kafka-python>=2.0.2
@@ -16,6 +18,7 @@ confluent-kafka>=2.3.0
 python-dotenv>=1.0.0
 structlog>=23.2.0
 matplotlib>=3.7.0
+prometheus-client>=0.19.0
 
 # Optional: for visualization
 plotly>=5.18.0

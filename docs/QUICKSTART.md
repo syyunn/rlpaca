@@ -18,11 +18,8 @@ Download historical tick data AND minute bars from Alpaca:
 export ALPACA_PAPER_API_KEY="your_paper_api_key"
 export ALPACA_PAPER_API_SECRET="your_paper_secret_key"
 
-# Option A: Download tick data only (older method)
-python scripts/download_alpaca_data.py --start 2025-06-20 --end 2025-06-20
-
-# Option B: Download with minute bars (RECOMMENDED)
-python scripts/download_data_with_bars.py
+# Download both tick data and minute bars
+python scripts/download_data.py
 ```
 
 **What this does:**
@@ -41,20 +38,7 @@ python scripts/download_data_with_bars.py
 💾 Saved to: data/alpaca_bars/NVDA_2025-06-20_bars.parquet
 ```
 
-## Step 2: Prepare Tick Data for Training
-
-Prepare the tick features (quotes) for the model:
-
-```bash
-python scripts/prepare_training_data_simple.py
-```
-
-**What this does:**
-- Resamples quotes to 1-minute intervals
-- Creates file: `data/1min_ticks/NVDA_ticks_20250620_1min.parquet`
-- The training will use Alpaca bars + these tick features
-
-## Step 3: Train the Long-Only SAC Model
+## Step 2: Train the Long-Only SAC Model
 
 Train a Soft Actor-Critic (SAC) model with real market data:
 
@@ -105,19 +89,12 @@ Expected: (5185,) and (2,) dimensions
 cp long_only_sac_model.zip streaming_model.zip
 ```
 
-### 5.2 Start streaming with bars
+### 5.2 Start streaming infrastructure
 ```bash
 # Start Kafka and Alpaca streaming (includes bars topic)
 docker-compose -f docker-compose.minimal-alpaca.yml up -d
 
-# Verify all 3 topics are receiving data
-docker exec kafka kafka-topics --list --bootstrap-server kafka:29092 | grep alpaca
-# Should see: quotes, trades, and bars topics
-```
-
-### 5.3 Deploy the updated executor
-```bash
-# The executor now consumes bars from Kafka
+# Start the RL executor
 docker-compose -f docker-compose.sac-executor.yml up -d
 
 # Monitor decisions

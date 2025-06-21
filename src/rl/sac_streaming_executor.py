@@ -310,13 +310,16 @@ class SACStreamingExecutor:
             if not clock.is_open:
                 logger.warning("Market is closed - order will be queued")
             
+            # Format price as string with exactly 2 decimal places
+            formatted_price = f"{limit_price:.2f}"
+            
             order = self.api.submit_order(
                 symbol=self.trading_symbol,
-                qty=qty,
+                qty=round(qty, 6),  # Alpaca supports up to 6 decimal places for fractional shares
                 side=side,
                 type='limit',
                 time_in_force='day',
-                limit_price=round(limit_price, 2),
+                limit_price=formatted_price,
                 extended_hours=True
             )
             

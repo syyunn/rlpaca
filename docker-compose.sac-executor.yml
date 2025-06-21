@@ -2,7 +2,7 @@ services:
   sac-executor:
     build:
       context: .
-      dockerfile: Dockerfile.sac_executor
+      dockerfile: docker/Dockerfile.sac_executor
     container_name: sac-executor
     networks:
       - polygon-kafka-network
