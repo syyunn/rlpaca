@@ -9,7 +9,7 @@
   🤖 RL + 🦙 Alpaca = 📈 Real-Time Trading
 ```
 
-# RLpaca: Real-Time ML Trading System
+# RLpaca: Real-Time RL Trading System
 
 A production-ready ML trading system that uses real tick data and streaming architecture - demonstrating capabilities beyond traditional daily-bar systems like FinRL.
 
