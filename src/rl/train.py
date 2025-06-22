@@ -83,17 +83,50 @@ class ProgressCallback(BaseCallback):
         
     def _on_step(self) -> bool:
         if self.n_calls % self.check_freq == 0:
-            # Get latest info from the last episode
+            # Calculate progress
+            progress_pct = (self.num_timesteps / self.locals.get('total_timesteps', 1)) * 100
+            
+            # Try to get current episode info from the environment
+            infos = self.locals.get('infos', [])
+            current_info = infos[0] if infos else {}
+            
+            # Calculate PnL from portfolio value
+            portfolio_value = current_info.get('portfolio_value', 100000)
+            pnl = portfolio_value - 100000  # Assuming 100k initial capital
+            position = current_info.get('position', 0)
+            
+            # Get current action to debug (this is the exact action at this step)
+            actions = self.locals.get('actions', None)
+            current_action = float(actions[0][0]) if actions is not None and len(actions) > 0 else 0
+            
+            # Try to get loss info if available
+            loss_info = ""
+            if hasattr(self.model, 'logger') and self.model.logger:
+                # Get recent loss values from logger
+                if hasattr(self.model.logger, 'name_to_value'):
+                    actor_loss = self.model.logger.name_to_value.get('train/actor_loss', None)
+                    critic_loss = self.model.logger.name_to_value.get('train/critic_loss', None)
+                    if actor_loss is not None:
+                        loss_info = f" | Actor Loss: {actor_loss:.4f}"
+                    if critic_loss is not None:
+                        loss_info += f" | Critic Loss: {critic_loss:.4f}"
+            
+            # Get latest completed episode info
             if len(self.model.ep_info_buffer) > 0:
                 ep_info = self.model.ep_info_buffer[-1]
                 logger.info(
-                    f"Step: {self.num_timesteps:,} | "
+                    f"Step: {self.num_timesteps:,}/{self.locals.get('total_timesteps', 0):,} ({progress_pct:.1f}%) | "
                     f"Episodes: {len(self.model.ep_info_buffer)} | "
-                    f"Ep Return: {ep_info.get('r', 0):.2f} | "
-                    f"Ep Length: {ep_info.get('l', 0)}"
+                    f"Last Return: {ep_info.get('r', 0):.2f} | "
+                    f"PnL: ${pnl:.2f} | Pos: {position:.0f} | Action: {current_action:.3f}{loss_info}"
                 )
             else:
-                logger.info(f"Step: {self.num_timesteps:,} | Training in progress...")
+                # Show progress even without completed episodes
+                logger.info(
+                    f"Step: {self.num_timesteps:,}/{self.locals.get('total_timesteps', 0):,} ({progress_pct:.1f}%) | "
+                    f"First episode in progress... | "
+                    f"PnL: ${pnl:.2f} | Pos: {position:.0f} | Action: {current_action:.3f}{loss_info}"
+                )
         return True
 
 
@@ -149,8 +182,8 @@ def train_model(env, eval_env, config, model_name):
     )
     callbacks.append(checkpoint_callback)
     
-    # Progress callback - log every 1000 steps
-    progress_callback = ProgressCallback(check_freq=1000)
+    # Progress callback - log every 100 steps for more frequent updates
+    progress_callback = ProgressCallback(check_freq=100)
     callbacks.append(progress_callback)
     
     # Create model
