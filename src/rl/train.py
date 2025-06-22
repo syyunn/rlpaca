@@ -94,6 +94,8 @@ class ProgressCallback(BaseCallback):
             portfolio_value = current_info.get('portfolio_value', 100000)
             pnl = portfolio_value - 100000  # Assuming 100k initial capital
             position = current_info.get('position', 0)
+            capital = current_info.get('capital', 100000)
+            trade_executed = current_info.get('trade_executed', False)
             
             # Get current action to debug (this is the exact action at this step)
             actions = self.locals.get('actions', None)
@@ -118,14 +120,16 @@ class ProgressCallback(BaseCallback):
                     f"Step: {self.num_timesteps:,}/{self.locals.get('total_timesteps', 0):,} ({progress_pct:.1f}%) | "
                     f"Episodes: {len(self.model.ep_info_buffer)} | "
                     f"Last Return: {ep_info.get('r', 0):.2f} | "
-                    f"PnL: ${pnl:.2f} | Pos: {position:.0f} | Action: {current_action:.3f}{loss_info}"
+                    f"PnL: ${pnl:.2f} | Pos: {position:.0f} | Cash: ${capital:.0f} | "
+                    f"Action: {current_action:.3f} {'✓' if trade_executed else '✗'}{loss_info}"
                 )
             else:
                 # Show progress even without completed episodes
                 logger.info(
                     f"Step: {self.num_timesteps:,}/{self.locals.get('total_timesteps', 0):,} ({progress_pct:.1f}%) | "
                     f"First episode in progress... | "
-                    f"PnL: ${pnl:.2f} | Pos: {position:.0f} | Action: {current_action:.3f}{loss_info}"
+                    f"PnL: ${pnl:.2f} | Pos: {position:.0f} | Cash: ${capital:.0f} | "
+                    f"Action: {current_action:.3f} {'✓' if trade_executed else '✗'}{loss_info}"
                 )
         return True
 
