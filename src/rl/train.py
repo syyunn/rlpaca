@@ -23,7 +23,8 @@ from stable_baselines3 import SAC
 from stable_baselines3.common.callbacks import (
     EvalCallback, 
     CheckpointCallback, 
-    CallbackList
+    CallbackList,
+    BaseCallback
 )
 from stable_baselines3.common.monitor import Monitor
 
@@ -72,6 +73,28 @@ def load_market_data(symbol: str, date: str):
     
     logger.info(f"Loaded {len(bars_df)} minute bars and {len(ticks)} ticks")
     return bars_df, ticks
+
+
+class ProgressCallback(BaseCallback):
+    """Custom callback for logging training progress"""
+    def __init__(self, check_freq: int = 1000, verbose: int = 1):
+        super().__init__(verbose)
+        self.check_freq = check_freq
+        
+    def _on_step(self) -> bool:
+        if self.n_calls % self.check_freq == 0:
+            # Get latest info from the last episode
+            if len(self.model.ep_info_buffer) > 0:
+                ep_info = self.model.ep_info_buffer[-1]
+                logger.info(
+                    f"Step: {self.num_timesteps:,} | "
+                    f"Episodes: {len(self.model.ep_info_buffer)} | "
+                    f"Ep Return: {ep_info.get('r', 0):.2f} | "
+                    f"Ep Length: {ep_info.get('l', 0)}"
+                )
+            else:
+                logger.info(f"Step: {self.num_timesteps:,} | Training in progress...")
+        return True
 
 
 def create_environment(bars_df, ticks, env_config):
@@ -125,6 +148,10 @@ def train_model(env, eval_env, config, model_name):
         save_vecnormalize=True,
     )
     callbacks.append(checkpoint_callback)
+    
+    # Progress callback - log every 1000 steps
+    progress_callback = ProgressCallback(check_freq=1000)
+    callbacks.append(progress_callback)
     
     # Create model
     model = SAC(
@@ -182,7 +209,9 @@ def evaluate_model(model, env, n_episodes=5):
             obs, reward, done, _, info = env.step(action)
             episode_return += reward
         
-        final_return = (info['portfolio_value'] - env.initial_capital) / env.initial_capital * 100
+        # Get initial capital from the wrapped environment
+        initial_capital = env.env.initial_capital if hasattr(env.env, 'initial_capital') else 100000
+        final_return = (info['portfolio_value'] - initial_capital) / initial_capital * 100
         returns.append(final_return)
         logger.info(f"Episode {episode + 1}: {final_return:.2f}% return")
     
