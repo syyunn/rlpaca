@@ -82,12 +82,17 @@ class RealisticOfflineEnv(gym.Env):
         self.position = 0.0
         self.trades_executed = []
         
+        # Track ALL attempted actions (executed or not)
+        self.action_history = []  # List of (action, executed_flag) for entire day
+        
         # Minute bars seen so far
         self.minute_bars_seen = []
         
         # Gym spaces
+        # Original: 5185 = 500 ticks + 4680 minute bars + 5 position
+        # New: 5185 + 4680 action history (1 per 5-sec interval) * 2 = 14545
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(5185,), dtype=np.float32
+            low=-np.inf, high=np.inf, shape=(14545,), dtype=np.float32
         )
         self.action_space = spaces.Box(
             low=np.array([-1.0, -10.0]), 
@@ -114,6 +119,9 @@ class RealisticOfflineEnv(gym.Env):
         self.position = 0.0
         self.trades_executed = []
         
+        # Reset action history
+        self.action_history = []
+        
         # Store market open for timestamp normalization
         self.day_market_open = self.current_time
         
@@ -139,8 +147,18 @@ class RealisticOfflineEnv(gym.Env):
         
         # 3. Execute trade at realistic price (next tick after order_time)
         execution_price, execution_time = self._find_execution_price(order_time)
+        
+        # Track number of trades before execution
+        trades_before = len(self.trades_executed)
+        
         if execution_price is not None:
             self._execute_trade(action, execution_price, execution_time)
+        
+        # Check if trade was actually executed
+        trade_executed = len(self.trades_executed) > trades_before
+        
+        # Record action and whether it was executed
+        self.action_history.append((action[0], 1.0 if trade_executed else 0.0))
         
         # 4. Feed all ticks up to next decision time
         self._feed_ticks_until(self.next_decision_time)
@@ -172,7 +190,8 @@ class RealisticOfflineEnv(gym.Env):
             'execution_price': execution_price,
             'ticks_in_interval': len([t for t in self.tick_buffer 
                                      if t['timestamp'] >= decision_time]),
-            'total_ticks_seen': self.tick_pointer
+            'total_ticks_seen': self.tick_pointer,
+            'trade_executed': len(self.trades_executed) > 0 and self.trades_executed[-1]['time'] == execution_time if execution_time else False
         }
         
         return self._get_state(), reward, done, False, info
@@ -357,6 +376,17 @@ class RealisticOfflineEnv(gym.Env):
             len(self.minute_bars_seen) / 390  # Progress through day
         ]
         features.extend(position_features)
+        
+        # 4. Action history (9360 dims = 4680 steps * 2 features)
+        # Pad with zeros for future steps
+        action_matrix = np.zeros((4680, 2))  # Max possible 5-sec intervals in a day
+        
+        for i, (action, executed) in enumerate(self.action_history):
+            if i >= 4680:
+                break
+            action_matrix[i] = [action, executed]
+        
+        features.extend(action_matrix.flatten())
         
         return np.array(features, dtype=np.float32)
         

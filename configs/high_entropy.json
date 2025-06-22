@@ -1,0 +1,32 @@
+{
+  "model": {
+    "network_arch": [512, 512, 256],
+    "learning_rate": 3e-4,
+    "batch_size": 256,
+    "buffer_size": 50000,
+    "learning_starts": 1000,
+    "tau": 0.005,
+    "gamma": 0.99,
+    "ent_coef": 0.2,
+    "target_update_interval": 1,
+    "gradient_steps": 4,
+    "log_std_init": 0.5
+  },
+  "training": {
+    "total_timesteps": 100000,
+    "eval_freq": 5000,
+    "n_eval_episodes": 3,
+    "save_freq": 10000,
+    "verbose": 1
+  },
+  "environment": {
+    "transaction_cost": 0.0,
+    "initial_capital": 100000,
+    "decision_interval_seconds": 5
+  },
+  "logging": {
+    "tensorboard_log": "./logs/high_entropy/",
+    "checkpoint_dir": "./checkpoints/high_entropy/",
+    "model_dir": "./models/high_entropy/"
+  }
+}
