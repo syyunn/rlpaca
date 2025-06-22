@@ -7,12 +7,25 @@ import pandas as pd
 from collections import deque
 from datetime import datetime, timedelta
 from bisect import bisect_left, bisect_right
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import random
 import structlog
 
 logger = structlog.get_logger()
+
+# Normalization constants with explanations
+# NVDA typically trades 50-200M shares/day, so minute volumes are in millions
+VOLUME_NORMALIZER = 1e6  # Convert to millions of shares
+
+# NVDA tick sizes are typically 100-10,000 shares per quote
+SIZE_NORMALIZER = 1e3  # Convert to thousands of shares  
+
+# Trade counts per minute bar typically 100-5,000 for liquid stocks
+TRADE_COUNT_NORMALIZER = 1e3  # Convert to thousands of trades
+
+# Position sizes for $100k account at ~$140 stock = ~700 shares max
+POSITION_NORMALIZER = 100  # Convert to hundreds of shares
 
 
 class RealisticOfflineEnv(gym.Env):
@@ -82,7 +95,7 @@ class RealisticOfflineEnv(gym.Env):
             dtype=np.float32
         )
         
-    def reset(self):
+    def reset(self, seed=None, options=None):
         """Reset for new trading day"""
         # Find first tick of the day
         day_date = self.all_ticks[0]['timestamp'].date()
@@ -101,6 +114,9 @@ class RealisticOfflineEnv(gym.Env):
         self.position = 0.0
         self.trades_executed = []
         
+        # Store market open for timestamp normalization
+        self.day_market_open = self.current_time
+        
         # Reset buffers
         self.tick_buffer.clear()
         self.minute_bars_seen = []
@@ -108,7 +124,7 @@ class RealisticOfflineEnv(gym.Env):
         # Feed initial ticks
         self._feed_ticks_until(self.current_time)
         
-        return self._get_state()
+        return self._get_state(), {}
         
     def step(self, action):
         """Execute one trading step"""
@@ -159,7 +175,7 @@ class RealisticOfflineEnv(gym.Env):
             'total_ticks_seen': self.tick_pointer
         }
         
-        return self._get_state(), reward, done, info
+        return self._get_state(), reward, done, False, info
         
     def _feed_ticks_until(self, target_time):
         """Feed all ticks from current pointer until target time"""
@@ -293,12 +309,18 @@ class RealisticOfflineEnv(gym.Env):
         
         for i in range(min(100, len(ticks))):
             t = ticks[-(i+1)]  # Most recent first
+            # Normalize timestamp to hours since market open (0-6.5 range)
+            if isinstance(t['timestamp'], pd.Timestamp) and hasattr(self, 'day_market_open') and self.day_market_open:
+                hours_since_open = (t['timestamp'] - self.day_market_open).total_seconds() / 3600
+            else:
+                hours_since_open = 0
+                
             tick_matrix[i] = [
                 t.get('bid', 0),
                 t.get('ask', 0),
-                t.get('bid_size', 0),
-                t.get('ask_size', 0),
-                t['timestamp'].timestamp() if isinstance(t['timestamp'], pd.Timestamp) else t['timestamp']
+                t.get('bid_size', 0) / SIZE_NORMALIZER,
+                t.get('ask_size', 0) / SIZE_NORMALIZER,  
+                hours_since_open  # Now 0-6.5 instead of 1.75e9!
             ]
         features.extend(tick_matrix.flatten())
         
@@ -312,8 +334,8 @@ class RealisticOfflineEnv(gym.Env):
                 bar.get('high', 0),
                 bar.get('low', 0),
                 bar.get('close', 0),
-                bar.get('volume', 0),
-                bar.get('trade_count', 0),
+                bar.get('volume', 0) / VOLUME_NORMALIZER,
+                bar.get('trade_count', 0) / TRADE_COUNT_NORMALIZER,
                 bar.get('vwap', 0),
                 (bar.get('close', 0) - bar.get('open', 0)) / bar.get('open', 1) * 100,  # return
                 bar.get('high', 0) - bar.get('low', 0),  # range
@@ -328,10 +350,10 @@ class RealisticOfflineEnv(gym.Env):
         portfolio_value = self.capital + self.position * current_price
         
         position_features = [
-            self.position,
-            self.capital,
-            self.position * current_price if current_price > 0 else 0,
-            (portfolio_value - self.initial_capital) / self.initial_capital,
+            self.position / POSITION_NORMALIZER,
+            self.capital / self.initial_capital,  # Fraction of initial capital
+            (self.position * current_price) / self.initial_capital if current_price > 0 else 0,  # Position value as fraction
+            (portfolio_value - self.initial_capital) / self.initial_capital,  # Return as fraction
             len(self.minute_bars_seen) / 390  # Progress through day
         ]
         features.extend(position_features)

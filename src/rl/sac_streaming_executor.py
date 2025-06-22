@@ -19,6 +19,10 @@ import structlog
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.config.trading_config import default_config
+from src.rl.realistic_offline_env import (
+    VOLUME_NORMALIZER, SIZE_NORMALIZER, TRADE_COUNT_NORMALIZER, POSITION_NORMALIZER,
+    RealisticOfflineEnv
+)
 
 logger = structlog.get_logger()
 
@@ -48,6 +52,10 @@ class SACStreamingExecutor:
         
         # Trading constraints
         self.long_only = True  # NO SHORT SELLING
+        
+        # Store market open time for normalization
+        now = datetime.now()
+        self.day_market_open = now.replace(hour=9, minute=30, second=0, microsecond=0)
         
         logger.info(f"Initialized SAC Streaming Executor")
         logger.info(f"Kafka Symbol: {self.kafka_symbol}")
@@ -198,21 +206,26 @@ class SACStreamingExecutor:
         self.last_decision_time = current_time
         
     def _create_observation(self):
-        """Create observation matching training environment"""
+        """Create observation matching NORMALIZED training environment"""
         features = []
         
-        # Recent trades (tick_buffer_size * tick_features dims)
-        tick_matrix = np.zeros((default_config.TICK_BUFFER_SIZE, default_config.TICK_FEATURES))
-        trades = list(self.trade_buffer)
+        # Get current time for normalization
+        now = datetime.now()
+        market_open_today = now.replace(hour=9, minute=30, second=0, microsecond=0)
+        hours_since_open = (now - market_open_today).total_seconds() / 3600
         
-        for i in range(min(default_config.TICK_BUFFER_SIZE, len(trades))):
-            t = trades[-(i+1)]
+        # 1. Recent tick data (500 dims) - using quotes like training env
+        tick_matrix = np.zeros((100, 5))
+        quotes = list(self.quote_buffer)
+        
+        for i in range(min(100, len(quotes))):
+            q = quotes[-(i+1)]  # Most recent first
             tick_matrix[i] = [
-                t.get('price', 0),
-                t.get('size', 0),
-                t.get('price', 0) * t.get('size', 0),
-                0,
-                time.time()
+                q.get('bid_price', 0),
+                q.get('ask_price', 0),
+                q.get('bid_size', 0) / SIZE_NORMALIZER,  # Normalize!
+                q.get('ask_size', 0) / SIZE_NORMALIZER,  # Normalize!
+                hours_since_open  # Normalized timestamp!
             ]
         features.extend(tick_matrix.flatten())
         
@@ -227,33 +240,45 @@ class SACStreamingExecutor:
                 bar.get('high', 0),
                 bar.get('low', 0),
                 bar.get('close', 0),
-                bar.get('volume', 0),
-                bar.get('trade_count', 0),
+                bar.get('volume', 0) / VOLUME_NORMALIZER,  # Normalize!
+                bar.get('trade_count', 0) / TRADE_COUNT_NORMALIZER,  # Normalize!
                 bar.get('vwap', bar.get('close', 0)),
                 # Derived features to match training
                 (bar.get('close', 0) - bar.get('open', 0)) / max(bar.get('open', 1), 0.001) * 100,  # return %
                 bar.get('high', 0) - bar.get('low', 0),  # range
                 i // 60,  # hour approximation
                 i % 60,   # minute approximation
-                i / 390   # normalized position in day
+                (i - 195) / 195  # normalized position in day (same as training!)
             ]
         features.extend(minute_matrix.flatten())
         
-        # Position state (5 dims)
+        # Position state (5 dims) - NORMALIZED like training env
         try:
             positions = self.api.list_positions()
             nvda_pos = next((p for p in positions if p.symbol == self.trading_symbol), None)
             position = float(nvda_pos.qty) if nvda_pos else 0
-            market_value = float(nvda_pos.market_value) if nvda_pos else 0
             account = self.api.get_account()
-            cash = float(account.cash)
-        except Exception as e:
-            logger.warning(f"Failed to get position info: {e}")
-            position = 0
-            market_value = 0
-            cash = 100000
+            capital = float(account.cash)
+            equity = float(account.equity)
             
-        features.extend([position, cash, market_value, 0.0, len(self.trade_buffer)])
+            # Get current price for position value calculation
+            current_price = quotes[-1].get('ask_price', 0) if quotes else 0
+            portfolio_value = capital + position * current_price
+            
+        except Exception as e:
+            logger.error(f"Failed to get position info from Alpaca API: {e}")
+            logger.error("Cannot create observation without account data")
+            raise RuntimeError(f"Critical: Unable to access Alpaca account data: {e}")
+        
+        # Normalize exactly like training environment
+        position_features = [
+            position / POSITION_NORMALIZER,  # Normalize shares to hundreds
+            capital / equity,  # Fraction of initial capital (using equity as proxy)
+            (position * current_price) / equity if current_price > 0 else 0,  # Position value as fraction
+            (portfolio_value - equity) / equity,  # Return as fraction
+            len(self.minute_bars) / 390  # Progress through day
+        ]
+        features.extend(position_features)
         
         return np.array(features, dtype=np.float32)
         

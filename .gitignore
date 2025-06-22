@@ -52,3 +52,21 @@ pgadmin-data/full_1epoch_model.zip
 CLAUDE.md
 
 *.zip
+
+# Archive and test files
+archive/
+test_*.py
+debug_*.py
+check_*.py
+*_test.py
+*_debug.py
+
+# Temporary training outputs
+tensorboard_logs/
+training_summary.json
+overfit_*.png
+learning_curve*.png
+
+# Extended training logs
+extended_training.log
+big_network_overfit.log

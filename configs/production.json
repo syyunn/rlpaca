@@ -1,0 +1,32 @@
+{
+  "model": {
+    "network_arch": [2048, 1024, 512, 256],
+    "learning_rate": 3e-4,
+    "batch_size": 512,
+    "buffer_size": 100000,
+    "learning_starts": 5000,
+    "tau": 0.005,
+    "gamma": 0.99,
+    "ent_coef": "auto", 
+    "target_update_interval": 1,
+    "gradient_steps": 2,
+    "log_std_init": -1
+  },
+  "training": {
+    "total_timesteps": 5000000,
+    "eval_freq": 50000,
+    "n_eval_episodes": 10,
+    "save_freq": 100000,
+    "verbose": 1
+  },
+  "environment": {
+    "transaction_cost": 0.001,
+    "initial_capital": 100000,
+    "decision_interval_seconds": 5
+  },
+  "logging": {
+    "tensorboard_log": "./logs/",
+    "checkpoint_dir": "./checkpoints/",
+    "model_dir": "./models/"
+  }
+}
