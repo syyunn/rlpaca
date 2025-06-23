@@ -1,0 +1,32 @@
+{
+  "model": {
+    "network_arch": [512, 256, 128],
+    "learning_rate": 3e-3,
+    "batch_size": 512,
+    "buffer_size": 10000,
+    "learning_starts": 100,
+    "tau": 0.02,
+    "gamma": 0.99,
+    "ent_coef": 0.1,
+    "target_update_interval": 1,
+    "gradient_steps": 16,
+    "log_std_init": -1
+  },
+  "training": {
+    "total_timesteps": 200000,
+    "eval_freq": 5000,
+    "n_eval_episodes": 3,
+    "save_freq": 10000,
+    "verbose": 1
+  },
+  "environment": {
+    "transaction_cost": 0.0,
+    "initial_capital": 100000,
+    "decision_interval_seconds": 5
+  },
+  "logging": {
+    "tensorboard_log": "./logs/overfit_fast/",
+    "checkpoint_dir": "./checkpoints/overfit_fast/",
+    "model_dir": "./models/overfit_fast/"
+  }
+}
