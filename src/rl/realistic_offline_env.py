@@ -236,9 +236,9 @@ class RealisticOfflineEnv(gym.Env):
         """Execute trade at given price"""
         position_delta = action[0]  # -1 to 1
         
-        if abs(position_delta) < 0.1:  # No significant action
-            return
-            
+        # No action threshold - tiny actions are important for large positions
+        # e.g., action=0.01 on 1000 shares = 10 share adjustment (meaningful!)
+        
         if position_delta > 0:  # Buy
             # FIX: Calculate actual affordable shares (no crazy leverage!)
             max_shares_affordable = self.capital / execution_price / (1 + self.transaction_cost)
