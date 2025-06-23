@@ -1,0 +1,32 @@
+{
+  "model": {
+    "network_arch": [256, 128],
+    "learning_rate": 1e-3,
+    "batch_size": 128,
+    "buffer_size": 20000,
+    "learning_starts": 500,
+    "tau": 0.01,
+    "gamma": 0.99,
+    "ent_coef": 0.05,
+    "target_update_interval": 10,
+    "gradient_steps": 2,
+    "log_std_init": -2
+  },
+  "training": {
+    "total_timesteps": 100000,
+    "eval_freq": 5000,
+    "n_eval_episodes": 3,
+    "save_freq": 10000,
+    "verbose": 1
+  },
+  "environment": {
+    "transaction_cost": 0.0,
+    "initial_capital": 100000,
+    "decision_interval_seconds": 5
+  },
+  "logging": {
+    "tensorboard_log": "./logs/smart_overfit/",
+    "checkpoint_dir": "./checkpoints/smart_overfit/",
+    "model_dir": "./models/smart_overfit/"
+  }
+}
