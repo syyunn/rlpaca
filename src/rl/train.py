@@ -101,6 +101,10 @@ class ProgressCallback(BaseCallback):
             actions = self.locals.get('actions', None)
             current_action = float(actions[0][0]) if actions is not None and len(actions) > 0 else 0
             
+            # Check for constraint violations
+            was_constrained = current_info.get('was_constrained', False)
+            constraint_type = current_info.get('constraint_type', '')
+            
             # Try to get loss info if available
             loss_info = ""
             if hasattr(self.model, 'logger') and self.model.logger:
@@ -121,7 +125,8 @@ class ProgressCallback(BaseCallback):
                     f"Episodes: {len(self.model.ep_info_buffer)} | "
                     f"Last Return: {ep_info.get('r', 0):.2f} | "
                     f"PnL: ${pnl:.2f} | Pos: {position:.0f} | Cash: ${capital:.0f} | "
-                    f"Action: {current_action:.3f} {'✓' if trade_executed else '✗'}{loss_info}"
+                    f"Action: {current_action:.3f} {'✓' if trade_executed and not was_constrained else '✗'}"
+                    f"{' [' + constraint_type + ']' if was_constrained else ''}{loss_info}"
                 )
             else:
                 # Show progress even without completed episodes
@@ -129,7 +134,8 @@ class ProgressCallback(BaseCallback):
                     f"Step: {self.num_timesteps:,}/{self.locals.get('total_timesteps', 0):,} ({progress_pct:.1f}%) | "
                     f"First episode in progress... | "
                     f"PnL: ${pnl:.2f} | Pos: {position:.0f} | Cash: ${capital:.0f} | "
-                    f"Action: {current_action:.3f} {'✓' if trade_executed else '✗'}{loss_info}"
+                    f"Action: {current_action:.3f} {'✓' if trade_executed and not was_constrained else '✗'}"
+                    f"{' [' + constraint_type + ']' if was_constrained else ''}{loss_info}"
                 )
         return True
 
@@ -140,9 +146,11 @@ def create_environment(bars_df, ticks, env_config):
         historical_ticks=ticks,
         historical_bars=bars_df,
         initial_capital=env_config['initial_capital'],
-        max_position=None,
+        max_position=env_config.get('max_position', None),
         transaction_cost=env_config['transaction_cost'],
-        decision_interval_seconds=env_config['decision_interval_seconds']
+        decision_interval_seconds=env_config['decision_interval_seconds'],
+        min_trade_value=env_config.get('min_trade_value', 100),
+        enable_masking=env_config.get('enable_masking', True)
     )
     return Monitor(env)
 

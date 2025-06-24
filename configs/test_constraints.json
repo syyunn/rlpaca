@@ -1,0 +1,39 @@
+{
+  "environment": {
+    "decision_interval_seconds": 5,
+    "initial_capital": 100000,
+    "max_position": null,
+    "transaction_cost": 0.001,
+    "max_ticks_in_buffer": 100,
+    "min_trade_value": 100,
+    "enable_masking": true
+  },
+  "model": {
+    "learning_rate": 3e-4,
+    "buffer_size": 10000,
+    "learning_starts": 100,
+    "batch_size": 256,
+    "tau": 0.005,
+    "gamma": 0.99,
+    "train_freq": 1,
+    "gradient_steps": 1,
+    "ent_coef": 0.2,
+    "target_update_interval": 1,
+    "use_sde": false,
+    "network_arch": [512, 512, 256],
+    "log_std_init": 0
+  },
+  "training": {
+    "total_timesteps": 2000,
+    "log_interval": 100,
+    "eval_freq": 1000,
+    "n_eval_episodes": 1,
+    "save_freq": 1000,
+    "verbose": 1
+  },
+  "logging": {
+    "tensorboard_log": "./logs/test_constraints/",
+    "checkpoint_dir": "./checkpoints/test_constraints/",
+    "model_dir": "./models/test_constraints/"
+  }
+}

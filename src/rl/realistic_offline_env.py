@@ -48,6 +48,8 @@ class RealisticOfflineEnv(gym.Env):
         max_ticks_in_buffer: int = 100,
         tick_buffer_max_age_seconds: int = 60,
         order_latency_ms: tuple = (5, 50),  # min, max milliseconds
+        min_trade_value: float = 100,  # NEW: Minimum $ value for a trade
+        enable_masking: bool = True,    # NEW: Enable action masking
     ):
         super().__init__()
         
@@ -66,6 +68,12 @@ class RealisticOfflineEnv(gym.Env):
         self.max_position = max_position  # None means no limit
         self.transaction_cost = transaction_cost
         self.order_latency_ms = order_latency_ms
+        
+        # NEW: Action masking parameters
+        self.min_trade_value = min_trade_value
+        self.enable_masking = enable_masking
+        self.invalid_action_attempts = 0
+        self.constraint_violations = []
         
         # Tick buffer management
         self.max_ticks = max_ticks_in_buffer
@@ -90,9 +98,10 @@ class RealisticOfflineEnv(gym.Env):
         
         # Gym spaces
         # Original: 5185 = 500 ticks + 4680 minute bars + 5 position
-        # New: 5185 + 4680 action history (1 per 5-sec interval) * 2 = 14545
+        # With action history: 5185 + 4680 action history * 2 = 14545
+        # NEW: + 3 constraint features = 14548
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(14545,), dtype=np.float32
+            low=-np.inf, high=np.inf, shape=(14548,), dtype=np.float32
         )
         self.action_space = spaces.Box(
             low=np.array([-1.0, -10.0]), 
@@ -122,6 +131,10 @@ class RealisticOfflineEnv(gym.Env):
         # Reset action history
         self.action_history = []
         
+        # NEW: Reset constraint tracking
+        self.invalid_action_attempts = 0
+        self.constraint_violations = []
+        
         # Store market open for timestamp normalization
         self.day_market_open = self.current_time
         
@@ -145,6 +158,11 @@ class RealisticOfflineEnv(gym.Env):
         current_price = self._get_current_price()
         portfolio_before = self.capital + self.position * current_price
         
+        # NEW: Apply environment-level constraints
+        original_action = float(action[0])
+        constrained_action, was_constrained, constraint_type = self._apply_constraints(original_action)
+        action = np.array([constrained_action, action[1]], dtype=np.float32)
+        
         # 3. Execute trade at realistic price (next tick after order_time)
         execution_price, execution_time = self._find_execution_price(order_time)
         
@@ -157,8 +175,33 @@ class RealisticOfflineEnv(gym.Env):
         # Check if trade was actually executed
         trade_executed = len(self.trades_executed) > trades_before
         
-        # Record action and whether it was executed
-        self.action_history.append((action[0], 1.0 if trade_executed else 0.0))
+        # Record action and whether it was executed (using original action)
+        self.action_history.append((original_action, 1.0 if trade_executed and not was_constrained else 0.0))
+        
+        # NEW: Apply proportional penalty for invalid action attempts
+        constraint_penalty = 0.0
+        if was_constrained and self.enable_masking:
+            self.invalid_action_attempts += 1
+            self.constraint_violations.append({
+                'time': self.current_time,
+                'type': constraint_type,
+                'original_action': original_action,
+                'capital': self.capital,
+                'position': self.position
+            })
+            
+            # Calculate proportional penalty based on constraint type and severity
+            if constraint_type == 'insufficient_funds':
+                # Penalty proportional to how much we're trying to overspend
+                severity = min(abs(original_action), 1.0)  # Action magnitude
+                constraint_penalty = -0.01 * severity  # -0.01% for full buy attempt with no money
+            elif constraint_type == 'no_position':
+                # Smaller penalty for trying to sell nothing
+                severity = min(abs(original_action), 1.0)
+                constraint_penalty = -0.005 * severity  # -0.005% for full sell with no position
+            else:  # partial_funds
+                # Minimal penalty since we still executed partially
+                constraint_penalty = -0.001
         
         # 4. Feed all ticks up to next decision time
         self._feed_ticks_until(self.next_decision_time)
@@ -169,7 +212,8 @@ class RealisticOfflineEnv(gym.Env):
         # 6. Calculate reward
         new_price = self._get_current_price()
         portfolio_after = self.capital + self.position * new_price
-        reward = (portfolio_after - portfolio_before) / portfolio_before * 100
+        base_reward = (portfolio_after - portfolio_before) / portfolio_before * 100
+        reward = base_reward + constraint_penalty
         
         # 7. Check if done
         done = self._is_end_of_day()
@@ -191,10 +235,65 @@ class RealisticOfflineEnv(gym.Env):
             'ticks_in_interval': len([t for t in self.tick_buffer 
                                      if t['timestamp'] >= decision_time]),
             'total_ticks_seen': self.tick_pointer,
-            'trade_executed': len(self.trades_executed) > 0 and self.trades_executed[-1]['time'] == execution_time if execution_time else False
+            'trade_executed': len(self.trades_executed) > 0 and self.trades_executed[-1]['time'] == execution_time if execution_time else False,
+            # NEW: Constraint info
+            'original_action': original_action,
+            'executed_action': constrained_action,
+            'was_constrained': was_constrained,
+            'constraint_type': constraint_type,
+            'constraint_penalty': constraint_penalty,
+            'invalid_attempts': self.invalid_action_attempts
         }
         
         return self._get_state(), reward, done, False, info
+    
+    def _apply_constraints(self, action):
+        """
+        Apply environment-level constraints to action
+        Returns: (constrained_action, was_constrained, constraint_type)
+        """
+        was_constrained = False
+        constraint_type = None
+        constrained_action = action
+        
+        # Get current price for calculations
+        current_price = self._get_current_price()
+        if current_price <= 0:
+            return action, False, None
+        
+        # Constraint 1: Can't buy if insufficient capital
+        if action > 0:  # Trying to buy
+            if self.capital < self.min_trade_value:
+                # No money to buy anything
+                constrained_action = 0.0
+                was_constrained = True
+                constraint_type = "insufficient_funds"
+            else:
+                # Check if action would require more capital than available
+                max_shares_affordable = self.capital / current_price / (1 + self.transaction_cost)
+                
+                # If short, can only buy to cover
+                if self.position < 0:
+                    max_buy_shares = min(abs(self.position), max_shares_affordable)
+                else:
+                    max_buy_shares = max_shares_affordable
+                
+                # Action of 1.0 means buy all affordable shares
+                if action * max_buy_shares * current_price > self.capital:
+                    # Scale down to what we can afford
+                    constrained_action = self.capital / (max_buy_shares * current_price) if max_buy_shares > 0 else 0.0
+                    was_constrained = True
+                    constraint_type = "partial_funds"
+        
+        # Constraint 2: Can't sell if no position (no short selling)
+        elif action < 0:  # Trying to sell
+            if self.position <= 0:
+                # No position to sell
+                constrained_action = 0.0
+                was_constrained = True
+                constraint_type = "no_position"
+        
+        return constrained_action, was_constrained, constraint_type
         
     def _feed_ticks_until(self, target_time):
         """Feed all ticks from current pointer until target time"""
@@ -388,7 +487,19 @@ class RealisticOfflineEnv(gym.Env):
         
         features.extend(action_matrix.flatten())
         
-        return np.array(features, dtype=np.float32)
+        # NEW: 5. Constraint features (3 dims)
+        # These help the agent learn what actions are valid
+        cash_ratio = min(1.0, self.capital / (self.initial_capital * 0.2))  # Normalized to 20% of initial
+        can_buy = 1.0 if self.capital >= self.min_trade_value else 0.0
+        can_sell = 1.0 if self.position > 0 else 0.0
+        
+        features.extend([
+            cash_ratio,  # How much cash available (0-1)
+            can_buy,     # Binary: can execute buy
+            can_sell     # Binary: can execute sell
+        ])
+        
+        return np.array(features[:14548], dtype=np.float32)
         
     def get_tick_distribution_stats(self):
         """Analyze tick distribution for current episode"""
@@ -409,3 +520,18 @@ class RealisticOfflineEnv(gym.Env):
             'min_ticks_per_minute': min(tick_counts.values()),
             'trades_executed': len(self.trades_executed)
         }
+    
+    def get_constraint_stats(self):
+        """Get statistics about constraint violations"""
+        stats = {
+            'total_invalid_attempts': self.invalid_action_attempts,
+            'invalid_rate': self.invalid_action_attempts / max(1, len(self.action_history)),
+            'violations_by_type': {}
+        }
+        
+        # Count violations by type
+        for violation in self.constraint_violations:
+            vtype = violation['type']
+            stats['violations_by_type'][vtype] = stats['violations_by_type'].get(vtype, 0) + 1
+        
+        return stats
