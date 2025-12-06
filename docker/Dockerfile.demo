@@ -1,0 +1,21 @@
+# Dockerfile for RLpaca Demo
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    kafka-python \
+    numpy \
+    flask
+
+# Copy source code
+COPY src/ /app/src/
+
+# Default command (overridden in docker-compose)
+CMD ["python", "-c", "print('RLpaca Demo Container Ready')"]

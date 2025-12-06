@@ -1,0 +1,101 @@
+# RLpaca Demo Setup
+# Shows real-time tick data streaming through Kafka to TD3 trading model
+
+services:
+  # Zookeeper for Kafka coordination
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
+    container_name: demo-zookeeper
+    ports:
+      - "12181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  # Kafka message broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka
+    container_name: demo-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "19092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:19092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+  # Kafka UI for visualization
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: demo-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "18080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: rlpaca-demo
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  # Mock Tick Data Producer (simulates Alpaca feed)
+  tick-producer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.demo
+    container_name: demo-tick-producer
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC: nvda-quotes
+      PYTHONUNBUFFERED: 1
+    command: python /app/src/demo/mock_tick_producer.py
+    restart: unless-stopped
+
+  # TD3 Trading Executor (terminal logs)
+  td3-executor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.demo
+    container_name: demo-td3-executor
+    depends_on:
+      - kafka
+      - tick-producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC: nvda-quotes
+      MODEL_TYPE: TD3
+      PYTHONUNBUFFERED: 1
+    command: python /app/src/demo/demo_executor.py
+    restart: unless-stopped
+
+  # Web Dashboard
+  web-dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.demo
+    container_name: demo-web-dashboard
+    depends_on:
+      - kafka
+      - tick-producer
+    ports:
+      - "5001:5000"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC: nvda-quotes
+      PYTHONUNBUFFERED: 1
+    command: python /app/src/demo/web_dashboard.py
+    restart: unless-stopped
+
+networks:
+  default:
+    name: rlpaca-demo-network
