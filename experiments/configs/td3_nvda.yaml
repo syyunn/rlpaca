@@ -1,0 +1,63 @@
+# TD3 Configuration for NVDA Trading
+# RLpaca Project - Algorithm Comparison Study
+# BEST PERFORMING ALGORITHM
+
+algorithm: TD3
+version: "1.0"
+
+# Environment
+environment:
+  symbol: NVDA
+  state_dim: 14548
+  action_dim: 2
+  tick_window: 500
+  bar_window: 780
+  action_history: 1560
+
+# Network Architecture
+policy:
+  type: deterministic  # Key difference from SAC
+  hidden_layers: [256, 256]
+  activation: relu
+
+critic:
+  type: twin  # Two Q-networks (innovation #1)
+  hidden_layers: [256, 256]
+  activation: relu
+
+# Training
+training:
+  total_timesteps: 100000
+  learning_rate: 0.0003
+  batch_size: 256
+  buffer_size: 1000000
+  learning_starts: 10000
+  tau: 0.005
+  gamma: 0.99
+
+# TD3-specific innovations
+td3:
+  policy_delay: 2  # Innovation #2: Update actor every 2 critic updates
+  target_policy_noise: 0.2  # Innovation #3: Smoothing noise
+  target_noise_clip: 0.5
+  exploration_noise: 0.1
+
+# Data
+data:
+  train_start: "2020-01-01"
+  train_end: "2024-12-31"
+  test_start: "2025-01-01"
+  test_end: "2025-03-31"
+
+# Constraints
+constraints:
+  long_only: true
+  max_position: 1.0
+  min_trade_size: 0.01
+
+# Notes
+# TD3 achieves Sharpe 1.79 - best among all algorithms
+# Key innovations over DDPG:
+# 1. Twin critics: Take min(Q1, Q2) to prevent overestimation
+# 2. Delayed policy updates: Wait for critics to stabilize
+# 3. Target policy smoothing: Add noise to target actions

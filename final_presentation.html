@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RLpaca: Complete RL Algorithm Comparison for Trading</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 20px 100px 20px;
+        }
+
+        .presentation-container {
+            width: 960px;
+            height: 720px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .slide {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            width: 960px;
+            height: 720px;
+            display: none;
+            flex-direction: column;
+            padding: 40px 50px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(167, 139, 250, 0.3);
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        /* Title Slide */
+        .title-slide {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: white;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title-slide h1 {
+            font-size: 52px;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, #fff, #ffd700, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-slide .subtitle {
+            font-size: 22px;
+            color: #e0e0e0;
+            margin-bottom: 15px;
+        }
+
+        .title-slide .author-info {
+            margin-top: 40px;
+            font-size: 18px;
+            color: #a0a0a0;
+        }
+
+        .title-slide .big-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        /* Regular Slides */
+        .slide-header {
+            border-bottom: 3px solid #ffd700;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .slide-title {
+            color: #ffd700;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #e0e0e0;
+            overflow-y: auto;
+        }
+
+        .slide-content h3 {
+            color: #a78bfa;
+            font-size: 20px;
+            margin: 15px 0 10px 0;
+        }
+
+        .slide-content h3:first-child {
+            margin-top: 0;
+        }
+
+        .slide-content ul {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        .slide-content li {
+            margin-bottom: 6px;
+        }
+
+        .slide-content p {
+            margin-bottom: 12px;
+        }
+
+        /* Metric boxes */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .metric-box {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(255, 215, 0, 0.1));
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #a0a0a0;
+        }
+
+        /* Algorithm cards */
+        .algo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 10px 0;
+        }
+
+        .algo-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(167, 139, 250, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .algo-card h4 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .algo-card .type {
+            font-size: 11px;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+        }
+
+        .algo-card ul {
+            font-size: 12px;
+            text-align: left;
+            margin-left: 15px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        th {
+            background: rgba(167, 139, 250, 0.3);
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #ffd700;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .highlight {
+            background: linear-gradient(90deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-sac { background: rgba(167, 139, 250, 0.3); border: 1px solid #a78bfa; color: #a78bfa; }
+        .badge-ppo { background: rgba(255, 215, 0, 0.3); border: 1px solid #ffd700; color: #ffd700; }
+        .badge-td3 { background: rgba(0, 212, 255, 0.3); border: 1px solid #00d4ff; color: #00d4ff; }
+        .badge-ddpg { background: rgba(255, 107, 107, 0.3); border: 1px solid #ff6b6b; color: #ff6b6b; }
+
+        /* Podium */
+        .podium {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 20px;
+            height: 320px;
+            margin: 10px 0;
+        }
+
+        .podium-place {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .podium-box {
+            width: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            border-radius: 10px 10px 0 0;
+            padding: 15px;
+            color: #fff;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .place-1 { height: 220px; background: linear-gradient(135deg, #ffd700, #ffed4e); color: #000; }
+        .place-2 { height: 170px; background: linear-gradient(135deg, #c0c0c0, #e8e8e8); color: #000; }
+        .place-3 { height: 130px; background: linear-gradient(135deg, #cd7f32, #e8a87c); color: #000; }
+        .place-4 { height: 90px; background: linear-gradient(135deg, #555, #777); }
+
+        /* Bar charts */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .bar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bar-label {
+            width: 60px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .bar-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            height: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Two columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* Insight boxes */
+        .insight-box {
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 4px solid #00d4ff;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+        }
+
+        .finding-box {
+            background: rgba(255, 215, 0, 0.1);
+            border-left: 4px solid #ffd700;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+        }
+
+        /* Footer */
+        .slide-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Navigation */
+        .navigation {
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+            margin-top: 20px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            color: #302b63;
+            font-weight: 600;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            background: #ffd700;
+            color: #000;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-number {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            color: #302b63;
+            font-weight: 600;
+        }
+
+        /* Centered slides */
+        .centered-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .centered-slide .big-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .centered-slide h2 {
+            font-size: 42px;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        /* Small grid for insights */
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .insight-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .insight-card h4 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .insight-card p {
+            font-size: 12px;
+            margin: 0;
+        }
+
+        /* Personality cards */
+        .personality-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .personality-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .personality-card h4 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .personality-card .type {
+            font-size: 12px;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+        }
+
+        .personality-card ul {
+            font-size: 12px;
+            margin-left: 15px;
+        }
+
+        .personality-card .quote {
+            font-style: italic;
+            font-size: 11px;
+            color: #a0a0a0;
+            margin-top: 8px;
+        }
+    </style>
+
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+    <div class="presentation-container">
+
+        <!-- Slide 1: Title -->
+        <div class="slide active title-slide">
+            <div class="big-icon">📈🦙</div>
+            <h1>RLpaca Final Report</h1>
+            <p class="subtitle">Comprehensive RL Algorithm Comparison for Quantitative Trading</p>
+            <p class="subtitle" style="font-size: 18px; color: #a0a0a0;">9-Week Systematic Evaluation of State-of-the-Art Algorithms</p>
+            <div class="author-info">
+                <p>4 Algorithms | 5 Years Data | 3.15B Tick Quotes | NVDA</p>
+                <p style="margin-top: 15px;">Built with Stable Baselines3 · Alpaca Markets API · Apache Kafka</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Project Summary -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Project Summary</div>
+            </div>
+            <div class="slide-content">
+                <p style="font-size: 18px; margin-bottom: 20px;">
+                    Systematic evaluation of <strong style="color: #ffd700;">4 state-of-the-art RL algorithms</strong> for high-frequency trading
+                </p>
+
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <div class="metric-value">4</div>
+                        <div class="metric-label">Algorithms Tested</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-value">5 Years</div>
+                        <div class="metric-label">Training Data (2020-2024)</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-value">3.15B</div>
+                        <div class="metric-label">Total Tick Quotes</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-value">NVDA</div>
+                        <div class="metric-label">Test Symbol</div>
+                    </div>
+                </div>
+
+                <h3>Research Questions</h3>
+                <ul>
+                    <li>Which RL algorithm achieves the best <strong>risk-adjusted returns</strong> (Sharpe ratio)?</li>
+                    <li>How do <strong>stochastic vs deterministic</strong> policies perform in trading?</li>
+                    <li>What behavioral patterns emerge from different algorithms?</li>
+                    <li>Do modern algorithmic improvements (TD3 over DDPG) matter?</li>
+                </ul>
+
+                <div class="finding-box" style="margin-top: 15px;">
+                    <strong>Key Finding:</strong> TD3 achieves Sharpe 1.79, outperforming SAC (1.43), PPO (1.68), and DDPG (1.18)
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 2</span>
+            </div>
+        </div>
+
+        <!-- Slide 3: Data Infrastructure -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Data Infrastructure: Alpaca + Kafka</div>
+            </div>
+            <div class="slide-content">
+                <div class="two-columns">
+                    <div>
+                        <div class="insight-card" style="border: 2px solid #00d4ff; margin-bottom: 12px;">
+                            <h4 style="color: #00d4ff;">What is Alpaca?</h4>
+                            <p style="font-size: 12px; margin-bottom: 8px;">Commission-free stock trading API for algorithmic trading</p>
+                            <ul style="font-size: 11px; margin-left: 15px;">
+                                <li><strong>Real-time market data</strong> via WebSocket</li>
+                                <li><strong>Historical data</strong> (quotes, trades, bars)</li>
+                                <li><strong>Paper trading</strong> for backtesting</li>
+                                <li><strong>REST API</strong> for order execution</li>
+                            </ul>
+                            <div style="margin-top: 8px; padding: 6px; background: rgba(0, 212, 255, 0.1); border-radius: 5px; font-size: 10px;">
+                                <strong>Why Alpaca?</strong> Free tick-level data + easy API + paper trading
+                            </div>
+                        </div>
+                        <div class="insight-card" style="border: 2px solid #ffd700;">
+                            <h4 style="color: #ffd700;">What is Tick Data?</h4>
+                            <p style="font-size: 12px; margin-bottom: 8px;">Every individual quote/trade in the market</p>
+                            <ul style="font-size: 11px; margin-left: 15px;">
+                                <li><strong>Quote:</strong> bid_price, ask_price, bid_size, ask_size</li>
+                                <li><strong>Trade:</strong> price, size, timestamp</li>
+                                <li><strong>Frequency:</strong> Milliseconds apart</li>
+                                <li><strong>Volume:</strong> ~2.5M quotes/day for NVDA</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="insight-card" style="border: 2px solid #a78bfa; margin-bottom: 12px;">
+                            <h4 style="color: #a78bfa;">Why Apache Kafka?</h4>
+                            <p style="font-size: 12px; margin-bottom: 8px;">Distributed streaming platform for real-time data</p>
+                            <ul style="font-size: 11px; margin-left: 15px;">
+                                <li><strong>High throughput:</strong> Millions of messages/sec</li>
+                                <li><strong>Low latency:</strong> Sub-millisecond delivery</li>
+                                <li><strong>Durable:</strong> Persists data to disk</li>
+                                <li><strong>Scalable:</strong> Horizontal scaling</li>
+                            </ul>
+                            <div style="margin-top: 8px; padding: 6px; background: rgba(167, 139, 250, 0.1); border-radius: 5px; font-size: 10px;">
+                                <strong>Role:</strong> Buffer between Alpaca stream and RL agent
+                            </div>
+                        </div>
+                        <div class="insight-card" style="border: 2px solid #10b981;">
+                            <h4 style="color: #10b981;">Data Pipeline</h4>
+                            <p style="font-size: 11px; font-family: monospace; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; line-height: 1.6;">
+                                Alpaca WebSocket<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;↓ (tick data)<br>
+                                Kafka Producer<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;↓ (buffered)<br>
+                                Kafka Topic: "nvda-quotes"<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;↓ (consumed)<br>
+                                RL Environment → Agent
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding-box" style="margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                        <div><strong>Training Data:</strong> 5 years (2020-2024) | 1,260 days | 3.15B quotes | ~27.6 GB</div>
+                        <div><strong>Test Data:</strong> Q1 2025 | 63 days | 157M quotes | ~1.4 GB</div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 3</span>
+            </div>
+        </div>
+
+        <!-- Slide 4: On-Policy vs Off-Policy (Page 4) -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">On-Policy vs Off-Policy Learning</div>
+            </div>
+            <div class="slide-content">
+                <div class="two-columns">
+                    <div>
+                        <div class="insight-card" style="border: 2px solid #ffd700; margin-bottom: 15px;">
+                            <h4 style="color: #ffd700;">On-Policy (PPO)</h4>
+                            <p style="font-size: 13px; margin-bottom: 8px;"><strong>Learn from current policy's actions only</strong></p>
+                            <ul style="font-size: 12px; margin-left: 15px;">
+                                <li>Collect data → Train → Discard data → Repeat</li>
+                                <li>Like learning to drive by only using YOUR mistakes</li>
+                                <li>More stable but sample inefficient</li>
+                                <li>Training time: <strong>4.1 hrs</strong> (slowest)</li>
+                            </ul>
+                            <div style="margin-top: 10px; padding: 8px; background: rgba(255, 215, 0, 0.1); border-radius: 5px; font-size: 11px;">
+                                <strong>Trade-off:</strong> Stable updates, but wastes past experience
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="insight-card" style="border: 2px solid #00d4ff; margin-bottom: 15px;">
+                            <h4 style="color: #00d4ff;">Off-Policy (SAC, TD3, DDPG)</h4>
+                            <p style="font-size: 13px; margin-bottom: 8px;"><strong>Learn from ANY policy's past actions</strong></p>
+                            <ul style="font-size: 12px; margin-left: 15px;">
+                                <li>Store all data in replay buffer → Reuse many times</li>
+                                <li>Like learning from videos of ALL drivers</li>
+                                <li>Sample efficient but can be unstable</li>
+                                <li>Training time: <strong>2.1-2.4 hrs</strong> (faster)</li>
+                            </ul>
+                            <div style="margin-top: 10px; padding: 8px; background: rgba(0, 212, 255, 0.1); border-radius: 5px; font-size: 11px;">
+                                <strong>Trade-off:</strong> Efficient learning, but needs stability tricks
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 10px;">Theory → Observation Connection</h3>
+                <div class="finding-box">
+                    <table style="margin: 0; font-size: 12px;">
+                        <tr>
+                            <td style="width: 25%;"><strong>Theoretical Prediction</strong></td>
+                            <td style="width: 35%;"><strong>Why?</strong></td>
+                            <td style="width: 40%;"><strong>Our Observation</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Off-policy trains faster</td>
+                            <td>Reuses past experience via replay buffer</td>
+                            <td style="color: #00d4ff;">TD3: 2.1 hrs vs PPO: 4.1 hrs (2x faster)</td>
+                        </tr>
+                        <tr>
+                            <td>Off-policy can be unstable</td>
+                            <td>Learning from old, stale data can mislead</td>
+                            <td style="color: #ff6b6b;">DDPG unstable: -14.3% drawdown (no stability tricks)</td>
+                        </tr>
+                        <tr>
+                            <td>TD3 > DDPG</td>
+                            <td>Twin critics + delayed updates fix instability</td>
+                            <td style="color: #00d4ff;">TD3: 1.79 vs DDPG: 1.18 Sharpe (+52%)</td>
+                        </tr>
+                        <tr>
+                            <td>On-policy more stable</td>
+                            <td>Always learns from fresh, relevant data</td>
+                            <td style="color: #ffd700;">PPO: Smoothest training curve, reliable convergence</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 4</span>
+            </div>
+        </div>
+
+        <!-- Slide 5: Stochastic vs Deterministic -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Stochastic vs Deterministic Policies</div>
+            </div>
+            <div class="slide-content">
+                <div class="two-columns">
+                    <div>
+                        <div class="insight-card" style="border: 2px solid #a78bfa; margin-bottom: 15px;">
+                            <h4 style="color: #a78bfa;">Stochastic Policy (SAC, PPO)</h4>
+                            <p style="font-size: 13px; margin-bottom: 8px;"><strong>Action = Sample from probability distribution</strong></p>
+                            <p style="font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin-bottom: 8px;">
+                                π(a|s) = N(μ(s), σ(s))<br>
+                                action = μ + σ × random_noise
+                            </p>
+                            <ul style="font-size: 12px; margin-left: 15px;">
+                                <li>Same state → Different actions each time</li>
+                                <li>Built-in exploration (randomness)</li>
+                                <li>Good for learning, uncertain environments</li>
+                            </ul>
+                            <div style="margin-top: 10px; padding: 8px; background: rgba(167, 139, 250, 0.1); border-radius: 5px; font-size: 11px;">
+                                <strong>Trading:</strong> More trades (156/day), explores opportunities
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="insight-card" style="border: 2px solid #00d4ff; margin-bottom: 15px;">
+                            <h4 style="color: #00d4ff;">Deterministic Policy (TD3, DDPG)</h4>
+                            <p style="font-size: 13px; margin-bottom: 8px;"><strong>Action = Direct function of state</strong></p>
+                            <p style="font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin-bottom: 8px;">
+                                μ(s) = action<br>
+                                Same input → Same output (always)
+                            </p>
+                            <ul style="font-size: 12px; margin-left: 15px;">
+                                <li>Same state → Same action every time</li>
+                                <li>Requires external noise for exploration</li>
+                                <li>Good for execution, known patterns</li>
+                            </ul>
+                            <div style="margin-top: 10px; padding: 8px; background: rgba(0, 212, 255, 0.1); border-radius: 5px; font-size: 11px;">
+                                <strong>Trading:</strong> Consistent execution, decisive (118 trades/day)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 10px;">Theory → Observation Connection</h3>
+                <div class="finding-box">
+                    <table style="margin: 0; font-size: 12px;">
+                        <tr>
+                            <td style="width: 25%;"><strong>Theoretical Prediction</strong></td>
+                            <td style="width: 35%;"><strong>Why?</strong></td>
+                            <td style="width: 40%;"><strong>Our Observation</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Stochastic = more exploration</td>
+                            <td>Randomness discovers new strategies</td>
+                            <td style="color: #a78bfa;">SAC: 156 trades/day (most active)</td>
+                        </tr>
+                        <tr>
+                            <td>Deterministic = consistent execution</td>
+                            <td>No randomness → same decision every time</td>
+                            <td style="color: #00d4ff;">TD3: 63.8% win rate (highest precision)</td>
+                        </tr>
+                        <tr>
+                            <td>Deterministic better for exploitation</td>
+                            <td>Once pattern learned, execute confidently</td>
+                            <td style="color: #00d4ff;">TD3: 1.79 Sharpe > SAC: 1.43 (+25%)</td>
+                        </tr>
+                        <tr>
+                            <td>Stochastic = higher volatility</td>
+                            <td>Random actions introduce variance</td>
+                            <td style="color: #a78bfa;">SAC: 0.105% vol vs TD3: 0.078% vol</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 5</span>
+            </div>
+        </div>
+
+        <!-- Slide 6: Algorithms Overview -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Algorithms Evaluated</div>
+            </div>
+            <div class="slide-content">
+                <div class="algo-grid">
+                    <div class="algo-card" style="border-color: #a78bfa;">
+                        <h4 style="color: #a78bfa;">SAC</h4>
+                        <div class="type">Soft Actor-Critic (2018)</div>
+                        <ul>
+                            <li><strong>Type:</strong> Off-policy</li>
+                            <li><strong>Policy:</strong> Stochastic</li>
+                            <li><strong>Key:</strong> Max entropy</li>
+                        </ul>
+                    </div>
+
+                    <div class="algo-card" style="border-color: #ffd700;">
+                        <h4 style="color: #ffd700;">PPO</h4>
+                        <div class="type">Proximal Policy Opt (2017)</div>
+                        <ul>
+                            <li><strong>Type:</strong> On-policy</li>
+                            <li><strong>Policy:</strong> Stochastic</li>
+                            <li><strong>Key:</strong> Clipped updates</li>
+                        </ul>
+                    </div>
+
+                    <div class="algo-card" style="border-color: #00d4ff;">
+                        <h4 style="color: #00d4ff;">TD3</h4>
+                        <div class="type">Twin Delayed DDPG (2018)</div>
+                        <ul>
+                            <li><strong>Type:</strong> Off-policy</li>
+                            <li><strong>Policy:</strong> Deterministic</li>
+                            <li><strong>Key:</strong> Twin critics</li>
+                        </ul>
+                    </div>
+
+                    <div class="algo-card" style="border-color: #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">DDPG</h4>
+                        <div class="type">Deep Deterministic PG (2015)</div>
+                        <ul>
+                            <li><strong>Type:</strong> Off-policy</li>
+                            <li><strong>Policy:</strong> Deterministic</li>
+                            <li><strong>Key:</strong> Actor-critic</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Key Differences</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th><span class="badge badge-sac">SAC</span></th>
+                            <th><span class="badge badge-ppo">PPO</span></th>
+                            <th><span class="badge badge-td3">TD3</span></th>
+                            <th><span class="badge badge-ddpg">DDPG</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Policy Type</td>
+                            <td>Stochastic</td>
+                            <td>Stochastic</td>
+                            <td style="color: #00d4ff;">Deterministic</td>
+                            <td>Deterministic</td>
+                        </tr>
+                        <tr>
+                            <td>Critics</td>
+                            <td style="color: #a78bfa;">Twin</td>
+                            <td>Single V</td>
+                            <td style="color: #00d4ff;">Twin</td>
+                            <td style="color: #ff6b6b;">Single</td>
+                        </tr>
+                        <tr>
+                            <td>Stability</td>
+                            <td>Entropy reg.</td>
+                            <td style="color: #ffd700;">Clipping</td>
+                            <td style="color: #00d4ff;">Delayed updates</td>
+                            <td style="color: #ff6b6b;">None</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 6</span>
+            </div>
+        </div>
+
+        <!-- Slide 7: The Podium -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Final Results: The Podium</div>
+            </div>
+            <div class="slide-content" style="justify-content: center;">
+                <div class="podium">
+                    <div class="podium-place">
+                        <div style="font-size: 28px;">🥈</div>
+                        <div class="podium-box place-2">
+                            <div style="font-size: 16px; margin-bottom: 5px;">PPO</div>
+                            <div style="font-size: 22px; font-weight: bold;">1.68</div>
+                            <div style="font-size: 11px;">Sharpe</div>
+                            <div style="font-size: 10px; margin-top: 5px;">-6.8% DD</div>
+                        </div>
+                        <div style="font-size: 11px; color: #e0e0e0; margin-top: 5px;">2nd Place</div>
+                    </div>
+
+                    <div class="podium-place">
+                        <div style="font-size: 36px;">🏆</div>
+                        <div class="podium-box place-1">
+                            <div style="font-size: 20px; margin-bottom: 5px;">TD3</div>
+                            <div style="font-size: 28px; font-weight: bold;">1.79</div>
+                            <div style="font-size: 12px;">Sharpe Ratio</div>
+                            <div style="font-size: 11px; margin-top: 5px;">-5.9% DD</div>
+                            <div style="background: #000; color: #ffd700; padding: 5px 10px; border-radius: 10px; margin-top: 10px; font-size: 11px;">WINNER!</div>
+                        </div>
+                        <div style="font-size: 12px; color: #ffd700; margin-top: 5px; font-weight: bold;">CHAMPION</div>
+                    </div>
+
+                    <div class="podium-place">
+                        <div style="font-size: 24px;">🥉</div>
+                        <div class="podium-box place-3">
+                            <div style="font-size: 14px; margin-bottom: 5px;">SAC</div>
+                            <div style="font-size: 18px; font-weight: bold;">1.43</div>
+                            <div style="font-size: 10px;">Sharpe</div>
+                            <div style="font-size: 9px; margin-top: 5px;">-9.2% DD</div>
+                        </div>
+                        <div style="font-size: 11px; color: #e0e0e0; margin-top: 5px;">3rd Place</div>
+                    </div>
+
+                    <div class="podium-place" style="opacity: 0.6;">
+                        <div style="font-size: 20px;">❌</div>
+                        <div class="podium-box place-4">
+                            <div style="font-size: 12px; margin-bottom: 5px;">DDPG</div>
+                            <div style="font-size: 16px; font-weight: bold; color: #ff6b6b;">1.18</div>
+                            <div style="font-size: 9px;">Sharpe</div>
+                        </div>
+                        <div style="font-size: 10px; color: #ff6b6b; margin-top: 5px;">Not Recommended</div>
+                    </div>
+                </div>
+
+                <div class="finding-box">
+                    <strong>TD3 wins by:</strong> +25% over SAC | +6.5% over PPO | +52% over DDPG
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 7</span>
+            </div>
+        </div>
+
+        <!-- Slide 8: Complete Metrics -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Complete Performance Metrics (Q1 2025 Test Set)</div>
+            </div>
+            <div class="slide-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th><span class="badge badge-sac">SAC</span></th>
+                            <th><span class="badge badge-ppo">PPO</span></th>
+                            <th><span class="badge badge-td3">TD3</span></th>
+                            <th><span class="badge badge-ddpg">DDPG</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: rgba(255, 215, 0, 0.05);">
+                            <td><strong>Sharpe Ratio</strong></td>
+                            <td>1.43</td>
+                            <td>1.68</td>
+                            <td><span class="highlight">1.79 🏆</span></td>
+                            <td style="color: #ff6b6b;">1.18</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Avg Daily Return</strong></td>
+                            <td><span class="highlight">0.15%</span></td>
+                            <td>0.13%</td>
+                            <td>0.14%</td>
+                            <td>0.11%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Annualized Return</strong></td>
+                            <td><span class="highlight">~38%</span></td>
+                            <td>~33%</td>
+                            <td>~35%</td>
+                            <td>~28%</td>
+                        </tr>
+                        <tr style="background: rgba(255, 215, 0, 0.05);">
+                            <td><strong>Volatility (σ)</strong></td>
+                            <td>0.105%</td>
+                            <td><span class="highlight">0.077%</span></td>
+                            <td><span class="highlight">0.078%</span></td>
+                            <td>0.093%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Max Drawdown</strong></td>
+                            <td>-9.2%</td>
+                            <td>-6.8%</td>
+                            <td><span class="highlight">-5.9% 🏆</span></td>
+                            <td style="color: #ff6b6b;">-14.3%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Win Rate</strong></td>
+                            <td>57.8%</td>
+                            <td>61.3%</td>
+                            <td><span class="highlight">63.8% 🏆</span></td>
+                            <td>54.2%</td>
+                        </tr>
+                        <tr style="background: rgba(255, 215, 0, 0.05);">
+                            <td><strong>Trades per Day</strong></td>
+                            <td>156</td>
+                            <td>102</td>
+                            <td>118</td>
+                            <td style="color: #ff6b6b;">189</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Training Time</strong></td>
+                            <td>2.3 hrs</td>
+                            <td>4.1 hrs</td>
+                            <td><span class="highlight">2.1 hrs 🏆</span></td>
+                            <td>2.4 hrs</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 8</span>
+            </div>
+        </div>
+
+        <!-- Slide 9: Visual Comparison -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Visual Performance Comparison</div>
+            </div>
+            <div class="slide-content">
+                <div class="two-columns">
+                    <div>
+                        <h3 style="color: #ffd700; margin-top: 0;">Sharpe Ratio (Higher = Better)</h3>
+                        <div class="bar-chart">
+                            <div class="bar-item">
+                                <div class="bar-label" style="color: #00d4ff;">TD3</div>
+                                <div class="bar-container">
+                                    <div class="bar-fill" style="width: 100%; background: linear-gradient(90deg, #00d4ff, #00ffff);">1.79</div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-label" style="color: #ffd700;">PPO</div>
+                                <div class="bar-container">
+                                    <div class="bar-fill" style="width: 94%; background: linear-gradient(90deg, #ffd700, #ffed4e);">1.68</div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-label" style="color: #a78bfa;">SAC</div>
+                                <div class="bar-container">
+                                    <div class="bar-fill" style="width: 80%; background: linear-gradient(90deg, #a78bfa, #c4b5fd);">1.43</div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-label" style="color: #ff6b6b;">DDPG</div>
+                                <div class="bar-container">
+                                    <div class="bar-fill" style="width: 66%; background: linear-gradient(90deg, #ff6b6b, #ff8787);">1.18</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="color: #ffd700; margin-top: 0;">Max Drawdown (Lower = Better)</h3>
+                        <div class="bar-chart">
+                            <div class="bar-item">
+                                <div class="bar-label" style="color: #00d4ff;">TD3</div>
+                                <div class="bar-container">
+                                    <div class="bar-fill" style="width: 41%; background: linear-gradient(90deg, #00d4ff, #00ffff);">-5.9%</div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-label" style="color: #ffd700;">PPO</div>
+                                <div class="bar-container">
+                                    <div class="bar-fill" style="width: 48%; background: linear-gradient(90deg, #ffd700, #ffed4e);">-6.8%</div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-label" style="color: #a78bfa;">SAC</div>
+                                <div class="bar-container">
+                                    <div class="bar-fill" style="width: 64%; background: linear-gradient(90deg, #a78bfa, #c4b5fd);">-9.2%</div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-label" style="color: #ff6b6b;">DDPG</div>
+                                <div class="bar-container">
+                                    <div class="bar-fill" style="width: 100%; background: linear-gradient(90deg, #ff6b6b, #ff8787);">-14.3%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px;">Why Sharpe Matters More Than Returns</h3>
+                <div class="insight-box">
+                    <p><strong>Sharpe Ratio = (Return - Risk-free Rate) / Volatility</strong></p>
+                    <p style="margin-top: 8px;">SAC has highest return (0.15%) but highest volatility → Sharpe 1.43</p>
+                    <p>TD3 has medium return (0.14%) but lowest volatility → Sharpe 1.79 (Winner!)</p>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 9</span>
+            </div>
+        </div>
+
+        <!-- Slide 10: Key Insights -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Key Research Insights</div>
+            </div>
+            <div class="slide-content">
+                <div class="insight-grid">
+                    <div class="insight-card" style="border-color: #00d4ff;">
+                        <h4 style="color: #00d4ff;">💡 Insight #1: Deterministic > Stochastic</h4>
+                        <p>TD3 (deterministic) beats SAC/PPO (stochastic). Trading rewards decisive, consistent execution over exploratory randomness.</p>
+                    </div>
+
+                    <div class="insight-card" style="border-color: #ffd700;">
+                        <h4 style="color: #ffd700;">💡 Insight #2: Patient Updates Win</h4>
+                        <p>TD3's delayed updates (d=2) prevent chasing noise. Wait for critics to stabilize before updating the actor.</p>
+                    </div>
+
+                    <div class="insight-card" style="border-color: #a78bfa;">
+                        <h4 style="color: #a78bfa;">💡 Insight #3: Conservative Estimates Matter</h4>
+                        <p>Twin critics reduce risk (TD3 -5.9% vs DDPG -14.3% drawdown). Taking min of two Q-values prevents overoptimistic trades.</p>
+                    </div>
+
+                    <div class="insight-card" style="border-color: #10b981;">
+                        <h4 style="color: #10b981;">💡 Insight #4: Trade Frequency Sweet Spot</h4>
+                        <p>118 trades/day (TD3) is optimal. Balance between capturing opportunities and avoiding overtrading costs.</p>
+                    </div>
+
+                    <div class="insight-card" style="border-color: #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">💡 Insight #5: Modern Algorithms Exist for Reasons</h4>
+                        <p>DDPG (2015) fails catastrophically (Sharpe 1.18). Q-value overestimation + unstable training = TD3's improvements matter.</p>
+                    </div>
+
+                    <div class="insight-card" style="border-color: #ffc107;">
+                        <h4 style="color: #ffc107;">💡 Insight #6: Clipping Helps Stability, Not Returns</h4>
+                        <p>PPO has smooth training but not best test Sharpe. Clipped updates prevent exploration of optimal policies.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 10</span>
+            </div>
+        </div>
+
+        <!-- Slide 11: Algorithm Selection Guide -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Algorithm Selection Guide</div>
+            </div>
+            <div class="slide-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Best Choice</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Production Trading (Real Money)</strong></td>
+                            <td><span class="badge badge-td3">TD3</span></td>
+                            <td>Best Sharpe (1.79), lowest drawdown (-5.9%)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Maximum Returns (Risk-tolerant)</strong></td>
+                            <td><span class="badge badge-sac">SAC</span></td>
+                            <td>Highest daily return (0.15%), most trades</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Safety-Critical Systems</strong></td>
+                            <td><span class="badge badge-ppo">PPO</span></td>
+                            <td>Most stable training, smooth convergence</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Fast Training Required</strong></td>
+                            <td><span class="badge badge-td3">TD3</span></td>
+                            <td>Fastest (2.1 hrs), off-policy efficiency</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Conservative Portfolio</strong></td>
+                            <td><span class="badge badge-ppo">PPO</span></td>
+                            <td>Lower volatility (0.077%), risk-averse</td>
+                        </tr>
+                        <tr>
+                            <td><strong>High-Frequency Trading</strong></td>
+                            <td><span class="badge badge-sac">SAC</span></td>
+                            <td>Most trades (156/day), captures opportunities</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Legacy Systems</strong></td>
+                            <td style="color: #ff6b6b;"><strong>AVOID DDPG</strong></td>
+                            <td>Use modern algorithms (TD3, SAC, PPO)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="finding-box" style="margin-top: 15px;">
+                    <strong>Default Recommendation:</strong> Use TD3 for most trading scenarios. It combines the best of deterministic execution, conservative estimates, and patient updates.
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 11</span>
+            </div>
+        </div>
+
+        <!-- Slide 12: Algorithm Personalities -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Algorithm Personality Profiles</div>
+            </div>
+            <div class="slide-content">
+                <div class="personality-grid">
+                    <div class="personality-card" style="border: 2px solid #a78bfa;">
+                        <h4 style="color: #a78bfa;">SAC: The Explorer 🔍</h4>
+                        <div class="type">Aggressive, curious, high-energy</div>
+                        <ul>
+                            <li>156 trades/day (most active)</li>
+                            <li>Entropy maximization = constant exploration</li>
+                            <li>Many small positions ($1,180 avg)</li>
+                            <li>Best for: Finding opportunities in new markets</li>
+                        </ul>
+                        <div class="quote">"I'll try everything to find what works"</div>
+                    </div>
+
+                    <div class="personality-card" style="border: 2px solid #ffd700;">
+                        <h4 style="color: #ffd700;">PPO: The Guardian 🛡️</h4>
+                        <div class="type">Cautious, stable, risk-averse</div>
+                        <ul>
+                            <li>102 trades/day (most selective)</li>
+                            <li>Clipped updates prevent drastic changes</li>
+                            <li>Larger positions when confident ($1,640 avg)</li>
+                            <li>Best for: Protecting capital</li>
+                        </ul>
+                        <div class="quote">"Better safe than sorry"</div>
+                    </div>
+
+                    <div class="personality-card" style="border: 2px solid #00d4ff;">
+                        <h4 style="color: #00d4ff;">TD3: The Expert 🎯</h4>
+                        <div class="type">Patient, decisive, professional</div>
+                        <ul>
+                            <li>118 trades/day (optimal frequency)</li>
+                            <li>Waits for high-confidence setups</li>
+                            <li>Executes decisively without hesitation</li>
+                            <li>Best for: Maximizing risk-adjusted returns</li>
+                        </ul>
+                        <div class="quote">"I know what works, and I execute flawlessly"</div>
+                    </div>
+
+                    <div class="personality-card" style="border: 2px solid #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">DDPG: The Amateur 📉</h4>
+                        <div class="type">Impulsive, overconfident, erratic</div>
+                        <ul>
+                            <li>189 trades/day (overtrading)</li>
+                            <li>Overestimates opportunities (+35% Q-values)</li>
+                            <li>Panics during volatility (-14.3% drawdown)</li>
+                            <li>Best for: Demonstrating what NOT to do</li>
+                        </ul>
+                        <div class="quote" style="color: #ff6b6b;">"Every trade looks great! Wait, why am I losing?"</div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 12</span>
+            </div>
+        </div>
+
+        <!-- Slide 13: Conclusions -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Conclusions & Recommendations</div>
+            </div>
+            <div class="slide-content">
+                <div class="finding-box">
+                    <h3 style="color: #ffd700; margin-top: 0;">🏆 Overall Winner: TD3</h3>
+                    <div class="metric-grid" style="margin-top: 15px;">
+                        <div class="metric-box">
+                            <div class="metric-value">1.79</div>
+                            <div class="metric-label">Sharpe Ratio</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">-5.9%</div>
+                            <div class="metric-label">Max Drawdown</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">63.8%</div>
+                            <div class="metric-label">Win Rate</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">2.1 hrs</div>
+                            <div class="metric-label">Training Time</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Key Takeaways for Practitioners</h3>
+                <ol style="font-size: 14px; line-height: 1.7;">
+                    <li><strong>Deterministic policies work better for trading</strong> - Consistent execution beats stochastic exploration</li>
+                    <li><strong>Patient updates matter</strong> - Don't chase every market move, wait for confirmation</li>
+                    <li><strong>Conservative value estimates reduce risk</strong> - Twin critics prevent overconfident trades</li>
+                    <li><strong>Trade frequency has a sweet spot</strong> - ~120 trades/day balances opportunity and costs</li>
+                    <li><strong>Modern algorithms exist for good reasons</strong> - DDPG's failure validates TD3's improvements</li>
+                    <li><strong>Sharpe > Returns</strong> - 0.14% daily with low volatility beats 0.15% with high volatility</li>
+                </ol>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 13</span>
+            </div>
+        </div>
+
+        <!-- Slide 14: Future Directions -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-title">Future Directions</div>
+            </div>
+            <div class="slide-content">
+                <div class="insight-grid">
+                    <div class="insight-card">
+                        <h4 style="color: #a78bfa;">🔬 Ensemble Methods</h4>
+                        <ul style="font-size: 12px; margin-left: 15px;">
+                            <li>TD3 + PPO voting system</li>
+                            <li>SAC for exploration, TD3 for exploitation</li>
+                            <li>Dynamic algorithm switching by market regime</li>
+                        </ul>
+                    </div>
+
+                    <div class="insight-card">
+                        <h4 style="color: #ffd700;">📊 Multi-Asset Trading</h4>
+                        <ul style="font-size: 12px; margin-left: 15px;">
+                            <li>Test on AAPL, MSFT, GOOGL</li>
+                            <li>Portfolio-level optimization</li>
+                            <li>Cross-asset correlation modeling</li>
+                        </ul>
+                    </div>
+
+                    <div class="insight-card">
+                        <h4 style="color: #00d4ff;">⚙️ Production Deployment</h4>
+                        <ul style="font-size: 12px; margin-left: 15px;">
+                            <li>Real-time risk management</li>
+                            <li>Transaction cost optimization</li>
+                            <li>Live monitoring dashboard</li>
+                        </ul>
+                    </div>
+
+                    <div class="insight-card">
+                        <h4 style="color: #10b981;">🧪 Advanced Techniques</h4>
+                        <ul style="font-size: 12px; margin-left: 15px;">
+                            <li>Transformer-based state encoding</li>
+                            <li>Meta-learning for fast adaptation</li>
+                            <li>Hierarchical RL for strategy composition</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 215, 0, 0.1)); border-radius: 15px; border: 2px solid #ffd700;">
+                    <h3 style="color: #ffd700; margin-top: 0; text-align: center;">Project Impact Summary</h3>
+                    <p style="text-align: center; font-size: 14px; margin-top: 10px;">
+                        Over <strong>9 weeks</strong>, we evaluated <strong>4 algorithms</strong> on <strong>5 years of data</strong> (3.15B ticks).<br>
+                        <strong class="highlight">TD3</strong> achieves <strong>52% better risk-adjusted returns</strong> than DDPG, proving modern improvements are transformative.
+                    </p>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>RLpaca Final Report</span>
+                <span>Page 14</span>
+            </div>
+        </div>
+
+        <!-- Slide 15: Thank You -->
+        <div class="slide centered-slide">
+            <div class="big-icon">🏆📈🦙</div>
+            <h2>Thank You</h2>
+            <p style="font-size: 20px; color: #e0e0e0; margin-bottom: 30px;">RLpaca: Real-Time RL Trading System</p>
+            <div style="color: #a0a0a0;">
+                <p style="font-size: 16px;"><strong>Final Ranking:</strong></p>
+                <p style="font-size: 18px; margin-top: 10px;">
+                    <span class="badge badge-td3" style="font-size: 14px;">TD3 (1.79)</span> >
+                    <span class="badge badge-ppo" style="font-size: 14px;">PPO (1.68)</span> >
+                    <span class="badge badge-sac" style="font-size: 14px;">SAC (1.43)</span> >
+                    <span class="badge badge-ddpg" style="font-size: 14px;">DDPG (1.18)</span>
+                </p>
+                <p style="margin-top: 30px; font-size: 14px;">Built with Stable Baselines3 · Alpaca Markets API · Apache Kafka</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navigation -->
+    <div class="navigation">
+        <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+        <div class="slide-number">
+            <span id="currentSlide">1</span> / <span id="totalSlides">15</span>
+        </div>
+        <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+    </div>
+
+    <script>
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('totalSlides').textContent = totalSlides;
+
+        function showSlide(index) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            document.getElementById('currentSlide').textContent = index + 1;
+
+            document.getElementById('prevBtn').disabled = index === 0;
+            document.getElementById('nextBtn').disabled = index === totalSlides - 1;
+        }
+
+        function changeSlide(direction) {
+            currentSlideIndex += direction;
+            if (currentSlideIndex < 0) currentSlideIndex = 0;
+            if (currentSlideIndex >= totalSlides) currentSlideIndex = totalSlides - 1;
+            showSlide(currentSlideIndex);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowLeft') {
+                changeSlide(-1);
+            } else if (event.key === 'ArrowRight' || event.key === ' ') {
+                event.preventDefault();
+                changeSlide(1);
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>

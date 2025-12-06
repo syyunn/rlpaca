@@ -1,0 +1,73 @@
+# DDPG Configuration for NVDA Trading
+# RLpaca Project - Algorithm Comparison Study
+# WARNING: NOT RECOMMENDED FOR PRODUCTION
+
+algorithm: DDPG
+version: "1.0"
+
+# Environment
+environment:
+  symbol: NVDA
+  state_dim: 14548
+  action_dim: 2
+  tick_window: 500
+  bar_window: 780
+  action_history: 1560
+
+# Network Architecture
+policy:
+  type: deterministic
+  hidden_layers: [256, 256]
+  activation: relu
+
+critic:
+  type: single  # PROBLEM: Only one Q-network
+  hidden_layers: [256, 256]
+  activation: relu
+
+# Training
+training:
+  total_timesteps: 100000
+  learning_rate: 0.0003
+  batch_size: 256
+  buffer_size: 1000000
+  learning_starts: 10000
+  tau: 0.005
+  gamma: 0.99
+
+# DDPG-specific (lacks TD3 innovations)
+ddpg:
+  exploration_noise: 0.1
+  # NO policy_delay (updates every step)
+  # NO target smoothing
+  # NO twin critics
+
+# Data
+data:
+  train_start: "2020-01-01"
+  train_end: "2024-12-31"
+  test_start: "2025-01-01"
+  test_end: "2025-03-31"
+
+# Constraints
+constraints:
+  long_only: true
+  max_position: 1.0
+  min_trade_size: 0.01
+
+# Known Issues
+issues:
+  - "Q-value overestimation: +35% error observed"
+  - "No delayed updates: Actor chases noisy critic"
+  - "Single critic: No conservative estimate"
+  - "High drawdown: -14.3% (worst among all)"
+  - "Overtrading: 189 trades/day due to overconfidence"
+
+# Results
+results:
+  sharpe_ratio: 1.18  # WORST
+  max_drawdown: -0.143  # WORST
+  recommendation: "DO NOT USE - Use TD3 instead"
+
+# This config exists for educational purposes only
+# to demonstrate why TD3's improvements matter

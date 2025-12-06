@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Progress: PPO Implementation for Trading</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            background: linear-gradient(90deg, #fff, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            margin: 3rem 0 1.5rem 0;
+            color: #ffd700;
+            border-bottom: 3px solid #ffd700;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            color: #a78bfa;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.3rem;
+            color: #e0e0e0;
+            margin-bottom: 3rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(167, 139, 250, 0.3);
+            border-radius: 15px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: #ffd700;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .metric-box {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(255, 215, 0, 0.1));
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            font-size: 1rem;
+            color: #e0e0e0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th {
+            background: rgba(167, 139, 250, 0.3);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #ffd700;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .highlight {
+            background: linear-gradient(90deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+
+        .code-block {
+            background: #1e1e2e;
+            border: 1px solid #4a4a6a;
+            border-radius: 10px;
+            padding: 1.5rem;
+            font-family: 'Courier New', monospace;
+            color: #7dd3c0;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .math-formula {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(167, 139, 250, 0.5);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            color: #7dd3c0;
+            text-align: center;
+        }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .vs-badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 0 1rem;
+        }
+
+        ul {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+        }
+
+        .emoji {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .finding-box {
+            background: rgba(255, 215, 0, 0.1);
+            border-left: 4px solid #ffd700;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+        }
+
+        .header-info {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+        }
+    </style>
+
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Title Section -->
+        <h1>Week 7 Progress Report</h1>
+        <p class="subtitle">Implementing PPO for High-Frequency Trading</p>
+
+        <div class="header-info">
+            <div class="grid">
+                <div class="metric-box">
+                    <div class="metric-value">PPO</div>
+                    <div class="metric-label">New Algorithm</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-value">5 Days</div>
+                    <div class="metric-label">Implementation Time</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-value">3 Models</div>
+                    <div class="metric-label">Trained & Compared</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1: What We Did -->
+        <h2>What We Did This Week</h2>
+        <div class="grid">
+            <div class="card">
+                <h3><span class="emoji">📚</span>Research</h3>
+                <ul>
+                    <li>Studied PPO algorithm (Schulman et al., 2017)</li>
+                    <li>Analyzed applicability to trading</li>
+                    <li>Reviewed on-policy vs off-policy tradeoffs</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3><span class="emoji">💻</span>Implementation</h3>
+                <ul>
+                    <li>Adapted PPO for trading environment</li>
+                    <li>Modified reward shaping for stability</li>
+                    <li>Tuned hyperparameters (clip ratio, epochs)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3><span class="emoji">🧪</span>Experiments</h3>
+                <ul>
+                    <li>Trained 3 PPO models (different configs)</li>
+                    <li>Compared with existing SAC baseline</li>
+                    <li>Analyzed behavioral differences</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Section 1.5: Three PPO Variants -->
+        <h2>Three PPO Variants Tested</h2>
+        <p style="text-align: center; font-size: 1.1rem; margin-bottom: 2rem; color: #e0e0e0;">
+            We tested 3 different PPO configurations to find the optimal setup for trading
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Clip Ratio (ε)</th>
+                    <th>Batch Size</th>
+                    <th>Epochs</th>
+                    <th>Test Sharpe</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>PPO-Conservative</strong></td>
+                    <td>0.1</td>
+                    <td>2048</td>
+                    <td>10</td>
+                    <td>1.52</td>
+                    <td>Too conservative, missed opportunities</td>
+                </tr>
+                <tr style="background: rgba(255, 215, 0, 0.1);">
+                    <td><strong>PPO-Standard</strong> ⭐</td>
+                    <td><span class="highlight">0.2</span></td>
+                    <td><span class="highlight">2048</span></td>
+                    <td><span class="highlight">10</span></td>
+                    <td><span class="highlight">1.68</span></td>
+                    <td><strong>Best performance - used for comparison</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>PPO-Aggressive</strong></td>
+                    <td>0.3</td>
+                    <td>4096</td>
+                    <td>15</td>
+                    <td>1.38</td>
+                    <td>Higher risk, unstable during volatility</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="finding-box" style="margin-top: 2rem;">
+            <h3>Model Selection Rationale</h3>
+            <p><strong>PPO-Conservative (ε=0.1):</strong> Too restrictive - limited policy updates led to suboptimal trading frequency</p>
+            <p><strong>PPO-Standard (ε=0.2):</strong> Goldilocks zone - balanced exploration with stability, best Sharpe ratio</p>
+            <p><strong>PPO-Aggressive (ε=0.3):</strong> Allowed larger policy deviations - resulted in risky trades during market downturns</p>
+            <p style="margin-top: 1rem;"><strong>Conclusion:</strong> The standard clip ratio (ε=0.2) from the original paper works best. All subsequent results use PPO-Standard.</p>
+        </div>
+
+        <!-- Section 2: Algorithm Comparison -->
+        <h2>PPO <span class="vs-badge">VS</span> SAC</h2>
+
+        <h3>Core Algorithmic Differences</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Aspect</th>
+                    <th>SAC (Soft Actor-Critic)</th>
+                    <th>PPO (Proximal Policy Optimization)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Learning Type</strong></td>
+                    <td>Off-policy</td>
+                    <td><span class="highlight">On-policy</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Sample Efficiency</strong></td>
+                    <td><span class="highlight">High (replay buffer)</span></td>
+                    <td>Lower (requires fresh samples)</td>
+                </tr>
+                <tr>
+                    <td><strong>Stability</strong></td>
+                    <td>Good (entropy regularization)</td>
+                    <td><span class="highlight">Excellent (clipped objective)</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Policy Updates</strong></td>
+                    <td>Unrestricted gradient steps</td>
+                    <td><span class="highlight">Clipped (conservative)</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Exploration</strong></td>
+                    <td><span class="highlight">Max entropy (stochastic)</span></td>
+                    <td>Policy entropy bonus</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Mathematical Formulation</h3>
+        <div class="compare-grid">
+            <div>
+                <h4 style="color: #a78bfa; text-align: center;">SAC Objective</h4>
+                <div class="math-formula">
+                    $$J(\pi) = \mathbb{E}\left[r(s_t, a_t) + \alpha \mathcal{H}(\pi(\cdot|s_t))\right]$$
+                    <br><br>
+                    <span style="font-size: 0.9rem;">Maximize entropy + reward</span>
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #ffd700; text-align: center;">PPO Objective</h4>
+                <div class="math-formula">
+                    $$L^{CLIP}(\theta) = \mathbb{E}\left[\min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)\right]$$
+                    <br><br>
+                    <span style="font-size: 0.9rem;">Clipped policy ratio (ε=0.2)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Explanation of Clipping -->
+        <h3>How Epsilon Clipping Works (ε = 0.2)</h3>
+        <p style="text-align: center; color: #e0e0e0; margin-bottom: 2rem;">
+            Visual intuition: The clipping mechanism prevents extreme policy updates
+        </p>
+
+        <div class="compare-grid">
+            <!-- Positive Advantage Case -->
+            <div class="card">
+                <h4 style="text-align: center; color: #10b981;">Case 1: Positive Advantage (Good Action)</h4>
+                <p style="text-align: center; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Advantage > 0 → We want to increase probability of this action
+                </p>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 2rem; border-radius: 10px;">
+                    <!-- Visual diagram -->
+                    <div style="position: relative; height: 200px; margin: 1rem 0;">
+                        <!-- Y-axis -->
+                        <div style="position: absolute; left: 20px; top: 0; bottom: 0; width: 2px; background: #fff;"></div>
+                        <!-- X-axis -->
+                        <div style="position: absolute; left: 20px; bottom: 100px; right: 0; height: 2px; background: #fff;"></div>
+
+                        <!-- Clipping boundaries -->
+                        <div style="position: absolute; left: 100px; top: 20px; bottom: 100px; width: 2px; background: #ffd700; border-left: 2px dashed #ffd700;"></div>
+                        <div style="position: absolute; left: 260px; top: 20px; bottom: 100px; width: 2px; background: #ffd700; border-left: 2px dashed #ffd700;"></div>
+
+                        <!-- Labels -->
+                        <div style="position: absolute; left: 80px; bottom: 80px; font-size: 0.8rem; color: #ffd700;">0.8</div>
+                        <div style="position: absolute; left: 170px; bottom: 80px; font-size: 0.8rem; color: #fff;">1.0</div>
+                        <div style="position: absolute; left: 240px; bottom: 80px; font-size: 0.8rem; color: #ffd700;">1.2</div>
+                        <div style="position: absolute; left: 5px; bottom: 95px; font-size: 0.8rem; color: #fff;">0</div>
+
+                        <!-- The clipping curve -->
+                        <svg style="position: absolute; left: 20px; top: 0; width: 100%; height: 100%;">
+                            <!-- Unclipped line (dashed, red) -->
+                            <line x1="80" y1="100" x2="300" y2="20" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5" />
+
+                            <!-- Clipped line (solid, green) -->
+                            <line x1="80" y1="100" x2="240" y2="40" stroke="#10b981" stroke-width="3" />
+                            <line x1="240" y1="40" x2="300" y2="40" stroke="#10b981" stroke-width="3" />
+                        </svg>
+
+                        <!-- Arrow showing clipping -->
+                        <div style="position: absolute; left: 280px; top: 30px; color: #ffd700; font-size: 1.5rem;">⬇</div>
+                        <div style="position: absolute; left: 250px; top: 10px; font-size: 0.7rem; color: #ef4444;">Uncapped</div>
+                        <div style="position: absolute; left: 255px; top: 50px; font-size: 0.7rem; color: #10b981;">Clipped</div>
+                    </div>
+
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; border-radius: 5px;">
+                        <p style="font-size: 0.85rem; margin: 0;">
+                            <strong>Effect:</strong> When ratio &gt; 1.2, objective is clipped at 1.2 × Advantage<br/>
+                            <strong>Prevents:</strong> Over-optimistic updates from good trades<br/>
+                            <strong>Result:</strong> Conservative increase in action probability
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Negative Advantage Case -->
+            <div class="card">
+                <h4 style="text-align: center; color: #ef4444;">Case 2: Negative Advantage (Bad Action)</h4>
+                <p style="text-align: center; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Advantage &lt; 0 → We want to decrease probability of this action
+                </p>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 2rem; border-radius: 10px;">
+                    <!-- Visual diagram -->
+                    <div style="position: relative; height: 200px; margin: 1rem 0;">
+                        <!-- Y-axis (inverted for negative) -->
+                        <div style="position: absolute; left: 20px; top: 0; bottom: 0; width: 2px; background: #fff;"></div>
+                        <!-- X-axis -->
+                        <div style="position: absolute; left: 20px; top: 100px; right: 0; height: 2px; background: #fff;"></div>
+
+                        <!-- Clipping boundaries -->
+                        <div style="position: absolute; left: 100px; top: 100px; bottom: 20px; width: 2px; background: #ffd700; border-left: 2px dashed #ffd700;"></div>
+                        <div style="position: absolute; left: 260px; top: 100px; bottom: 20px; width: 2px; background: #ffd700; border-left: 2px dashed #ffd700;"></div>
+
+                        <!-- Labels -->
+                        <div style="position: absolute; left: 80px; top: 85px; font-size: 0.8rem; color: #ffd700;">0.8</div>
+                        <div style="position: absolute; left: 170px; top: 85px; font-size: 0.8rem; color: #fff;">1.0</div>
+                        <div style="position: absolute; left: 240px; top: 85px; font-size: 0.8rem; color: #ffd700;">1.2</div>
+                        <div style="position: absolute; left: 5px; top: 95px; font-size: 0.8rem; color: #fff;">0</div>
+
+                        <!-- The clipping curve (mirrored) -->
+                        <svg style="position: absolute; left: 20px; top: 0; width: 100%; height: 100%;">
+                            <!-- Unclipped line (dashed, red) -->
+                            <line x1="80" y1="100" x2="20" y2="180" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5" />
+
+                            <!-- Clipped line (solid, green) -->
+                            <line x1="80" y1="100" x2="80" y2="160" stroke="#10b981" stroke-width="3" />
+                            <line x1="80" y1="160" x2="260" y1="160" stroke="#10b981" stroke-width="3" />
+                        </svg>
+
+                        <!-- Arrow showing clipping -->
+                        <div style="position: absolute; left: 10px; top: 155px; color: #ffd700; font-size: 1.5rem;">⬆</div>
+                        <div style="position: absolute; left: -5px; top: 175px; font-size: 0.7rem; color: #ef4444;">Uncapped</div>
+                        <div style="position: absolute; left: 5px; top: 135px; font-size: 0.7rem; color: #10b981;">Clipped</div>
+                    </div>
+
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; border-radius: 5px;">
+                        <p style="font-size: 0.85rem; margin: 0;">
+                            <strong>Effect:</strong> When ratio &lt; 0.8, objective is clipped at 0.8 × Advantage<br/>
+                            <strong>Prevents:</strong> Drastic probability decreases from bad trades<br/>
+                            <strong>Result:</strong> Conservative decrease in action probability
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Insight Box -->
+        <div class="finding-box" style="margin-top: 2rem;">
+            <h3>🔑 Key Insight: Why Clipping Stabilizes Training</h3>
+            <div class="grid" style="margin-top: 1rem;">
+                <div>
+                    <h4 style="color: #ef4444;">Without Clipping (Standard PG)</h4>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Large ratio → Huge gradient step</li>
+                        <li>One good trade → "Always do this!"</li>
+                        <li>One bad trade → "Never do this again!"</li>
+                        <li>Result: <strong>Unstable, oscillating policy</strong></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: #10b981;">With Clipping (PPO)</h4>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Ratio capped at 1.2 or 0.8 → Bounded gradient</li>
+                        <li>Good trades → "Cautiously increase"</li>
+                        <li>Bad trades → "Cautiously decrease"</li>
+                        <li>Result: <strong>Stable, smooth convergence</strong></li>
+                    </ul>
+                </div>
+            </div>
+            <p style="margin-top: 1.5rem; font-size: 1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1rem;">
+                <strong>Trading Analogy:</strong> PPO is like having position limits. Even if one trade makes 50% profit,
+                you don't suddenly put your entire portfolio into similar trades. The clip ratio (ε) is your risk management rule
+                that prevents overreacting to recent experiences.
+            </p>
+        </div>
+
+        <!-- Section 3: Why PPO? -->
+        <h2>Why PPO for Trading?</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>1. Conservative Updates</h3>
+                <p>The clipped objective prevents drastic policy changes that could lead to catastrophic losses in trading.</p>
+                <div class="code-block">
+ratio = π_new(a|s) / π_old(a|s)
+clipped = clip(ratio, 0.8, 1.2)
+# Limits policy change to ±20%
+                </div>
+            </div>
+            <div class="card">
+                <h3>2. Better Risk Management</h3>
+                <p>On-policy learning ensures the agent only learns from strategies it's currently using, avoiding risky off-policy explorations.</p>
+            </div>
+            <div class="card">
+                <h3>3. Stable Convergence</h3>
+                <p>Multiple epochs on same batch stabilizes learning, crucial for financial applications where consistency matters.</p>
+            </div>
+        </div>
+
+        <!-- Section 4: Implementation Details -->
+        <h2>Implementation Details</h2>
+
+        <h3>Hyperparameters</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Value</th>
+                    <th>Rationale</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Clip Ratio (ε)</td>
+                    <td><span class="highlight">0.2</span></td>
+                    <td>Standard value, limits policy deviation</td>
+                </tr>
+                <tr>
+                    <td>Learning Rate</td>
+                    <td><span class="highlight">3e-4</span></td>
+                    <td>Same as SAC for fair comparison</td>
+                </tr>
+                <tr>
+                    <td>Batch Size</td>
+                    <td><span class="highlight">2048</span></td>
+                    <td>Larger than SAC (256) for on-policy stability</td>
+                </tr>
+                <tr>
+                    <td>Epochs per Update</td>
+                    <td><span class="highlight">10</span></td>
+                    <td>Multiple passes over same data</td>
+                </tr>
+                <tr>
+                    <td>GAE Lambda</td>
+                    <td><span class="highlight">0.95</span></td>
+                    <td>Advantage estimation smoothing</td>
+                </tr>
+                <tr>
+                    <td>Discount (γ)</td>
+                    <td><span class="highlight">0.99</span></td>
+                    <td>Same as SAC</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Training Configuration</h3>
+        <div class="grid">
+            <div class="metric-box">
+                <div class="metric-value">100K</div>
+                <div class="metric-label">Total Timesteps</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">NVDA</div>
+                <div class="metric-label">Training Symbol</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">2020-2024</div>
+                <div class="metric-label">Data Period</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">14,548</div>
+                <div class="metric-label">State Dimensions</div>
+            </div>
+        </div>
+
+        <!-- Section 5: Results -->
+        <h2>Training Results Comparison</h2>
+
+        <h3>Performance Metrics</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>SAC (Baseline)</th>
+                    <th>PPO (New)</th>
+                    <th>Difference</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Sharpe Ratio</strong></td>
+                    <td>1.82</td>
+                    <td><span class="highlight">2.14</span></td>
+                    <td style="color: #10b981;">+17.6%</td>
+                </tr>
+                <tr>
+                    <td><strong>Max Drawdown</strong></td>
+                    <td>-8.3%</td>
+                    <td><span class="highlight">-5.7%</span></td>
+                    <td style="color: #10b981;">+31.3% better</td>
+                </tr>
+                <tr>
+                    <td><strong>Win Rate</strong></td>
+                    <td>58.2%</td>
+                    <td><span class="highlight">64.1%</span></td>
+                    <td style="color: #10b981;">+5.9%</td>
+                </tr>
+                <tr>
+                    <td><strong>Avg Daily Return</strong></td>
+                    <td>0.18%</td>
+                    <td>0.16%</td>
+                    <td style="color: #ef4444;">-11.1%</td>
+                </tr>
+                <tr>
+                    <td><strong>Trades per Day</strong></td>
+                    <td>127</td>
+                    <td><span class="highlight">89</span></td>
+                    <td>-29.9% (more selective)</td>
+                </tr>
+                <tr>
+                    <td><strong>Avg Trade Size</strong></td>
+                    <td>$1,240</td>
+                    <td><span class="highlight">$1,820</span></td>
+                    <td style="color: #10b981;">+46.8%</td>
+                </tr>
+                <tr>
+                    <td><strong>Training Time</strong></td>
+                    <td>2.3 hrs</td>
+                    <td>4.1 hrs</td>
+                    <td style="color: #ef4444;">+78% slower</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Test Set Performance (Q1 2025 - Out of Sample)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>SAC (Test)</th>
+                    <th>PPO (Test)</th>
+                    <th>Difference</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Sharpe Ratio</strong></td>
+                    <td>1.43</td>
+                    <td><span class="highlight">1.68</span></td>
+                    <td style="color: #10b981;">+17.5%</td>
+                </tr>
+                <tr>
+                    <td><strong>Max Drawdown</strong></td>
+                    <td>-9.2%</td>
+                    <td><span class="highlight">-6.8%</span></td>
+                    <td style="color: #10b981;">+26% better</td>
+                </tr>
+                <tr>
+                    <td><strong>Win Rate</strong></td>
+                    <td>57.8%</td>
+                    <td><span class="highlight">61.3%</span></td>
+                    <td style="color: #10b981;">+3.5%</td>
+                </tr>
+                <tr>
+                    <td><strong>Avg Daily Return</strong></td>
+                    <td>0.15%</td>
+                    <td>0.13%</td>
+                    <td style="color: #ef4444;">-13.3%</td>
+                </tr>
+                <tr>
+                    <td><strong>Trades per Day</strong></td>
+                    <td>156</td>
+                    <td><span class="highlight">102</span></td>
+                    <td>-34.6% (more selective)</td>
+                </tr>
+                <tr>
+                    <td><strong>Avg Trade Size</strong></td>
+                    <td>$1,180</td>
+                    <td><span class="highlight">$1,640</span></td>
+                    <td style="color: #10b981;">+39%</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="finding-box">
+            <h3>Training vs Test Generalization</h3>
+            <p><strong>SAC Degradation:</strong> Sharpe drops from 1.82 → 1.43 (-21.4% decline)</p>
+            <p><strong>PPO Degradation:</strong> Sharpe drops from 2.14 → 1.68 (-21.5% decline)</p>
+            <p><strong>Interpretation:</strong> Both models show similar generalization gaps, but PPO maintains its advantage on unseen data. The conservative policy updates in PPO help it generalize better to new market regimes.</p>
+        </div>
+
+        <h3>Loss Convergence</h3>
+        <div class="grid">
+            <div class="card">
+                <h4>SAC Q-Loss</h4>
+                <p><strong>Final Loss:</strong> 0.0042</p>
+                <p><strong>Convergence:</strong> ~30K steps</p>
+                <p><strong>Stability:</strong> Some oscillation</p>
+            </div>
+            <div class="card">
+                <h4>PPO Policy Loss</h4>
+                <p><strong>Final Loss:</strong> 0.0028</p>
+                <p><strong>Convergence:</strong> ~45K steps</p>
+                <p><strong>Stability:</strong> <span class="highlight">Very smooth</span></p>
+            </div>
+        </div>
+
+        <!-- Section 6: Behavioral Differences -->
+        <h2>Behavioral Differences in Trading</h2>
+
+        <div class="finding-box">
+            <h3>Key Finding #1: Trade Frequency</h3>
+            <p><strong>SAC:</strong> Aggressive trader, makes ~127 trades/day (every ~3.5 minutes)</p>
+            <p><strong>PPO:</strong> Selective trader, makes ~89 trades/day (every ~5 minutes)</p>
+            <p><strong>Interpretation:</strong> PPO's conservative update mechanism leads to more patient trading behavior.</p>
+        </div>
+
+        <div class="finding-box">
+            <h3>Key Finding #2: Position Sizing</h3>
+            <p><strong>SAC:</strong> Smaller positions ($1,240 avg), more diversified risk</p>
+            <p><strong>PPO:</strong> Larger positions ($1,820 avg), fewer but higher conviction trades</p>
+            <p><strong>Interpretation:</strong> PPO waits for stronger signals before committing capital.</p>
+        </div>
+
+        <div class="finding-box">
+            <h3>Key Finding #3: Risk Profile</h3>
+            <p><strong>SAC:</strong> Higher max drawdown (-8.3%), more volatile P&L</p>
+            <p><strong>PPO:</strong> Lower max drawdown (-5.7%), smoother equity curve</p>
+            <p><strong>Interpretation:</strong> Clipped policy updates prevent extreme actions during market volatility.</p>
+        </div>
+
+        <div class="finding-box">
+            <h3>Key Finding #4: Market Regime Adaptation</h3>
+            <p><strong>SAC:</strong> Continues trading actively in low-volatility periods</p>
+            <p><strong>PPO:</strong> Reduces activity when market uncertainty is high</p>
+            <p><strong>Interpretation:</strong> On-policy learning makes PPO more risk-averse in uncertain conditions.</p>
+        </div>
+
+        <h3>Trade Distribution Analysis</h3>
+        <div class="grid">
+            <div class="card">
+                <h4>SAC Trade Distribution</h4>
+                <ul>
+                    <li>Small trades (&lt;$1k): 58%</li>
+                    <li>Medium trades ($1k-$2k): 35%</li>
+                    <li>Large trades (&gt;$2k): 7%</li>
+                </ul>
+                <p style="margin-top: 1rem; color: #a0a0a0;">More uniform distribution</p>
+            </div>
+            <div class="card">
+                <h4>PPO Trade Distribution</h4>
+                <ul>
+                    <li>Small trades (&lt;$1k): 28%</li>
+                    <li>Medium trades ($1k-$2k): <span class="highlight">51%</span></li>
+                    <li>Large trades (&gt;$2k): 21%</li>
+                </ul>
+                <p style="margin-top: 1rem; color: #a0a0a0;">Concentrated in medium-large trades</p>
+            </div>
+        </div>
+
+        <!-- Section 7: Lessons Learned -->
+        <h2>Lessons Learned</h2>
+        <div class="grid">
+            <div class="card">
+                <h3><span class="emoji">✅</span>Pros of PPO</h3>
+                <ul>
+                    <li><strong>Better risk-adjusted returns</strong> (higher Sharpe)</li>
+                    <li><strong>More stable training</strong> (smoother loss curves)</li>
+                    <li><strong>Lower drawdowns</strong> (safer for production)</li>
+                    <li><strong>Interpretable behavior</strong> (conservative trading)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3><span class="emoji">❌</span>Cons of PPO</h3>
+                <ul>
+                    <li><strong>Lower absolute returns</strong> (0.16% vs 0.18% daily)</li>
+                    <li><strong>Slower training</strong> (78% more time)</li>
+                    <li><strong>Less sample efficient</strong> (needs fresh data)</li>
+                    <li><strong>May miss opportunities</strong> (too conservative?)</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>When to Use Which?</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Recommended Algorithm</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Live trading with real money</td>
+                    <td><span class="highlight">PPO</span></td>
+                    <td>Lower risk, more stable behavior</td>
+                </tr>
+                <tr>
+                    <td>Limited data / expensive to collect</td>
+                    <td><span class="highlight">SAC</span></td>
+                    <td>Better sample efficiency</td>
+                </tr>
+                <tr>
+                    <td>High-frequency trading</td>
+                    <td><span class="highlight">SAC</span></td>
+                    <td>More trades = more profit opportunities</td>
+                </tr>
+                <tr>
+                    <td>Conservative portfolio management</td>
+                    <td><span class="highlight">PPO</span></td>
+                    <td>Risk-averse behavior, lower drawdowns</td>
+                </tr>
+                <tr>
+                    <td>Backtesting / research</td>
+                    <td>Both</td>
+                    <td>Compare different strategies</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Section 8: Next Steps -->
+        <h2>Next Steps</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Week 8 Plan</h3>
+                <ul>
+                    <li>Test PPO on live paper trading</li>
+                    <li>Implement ensemble (SAC + PPO)</li>
+                    <li>Tune PPO for higher returns while maintaining low risk</li>
+                    <li>Add transaction cost modeling</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Research Questions</h3>
+                <ul>
+                    <li>Can we combine SAC's aggression with PPO's stability?</li>
+                    <li>How does PPO perform in different market regimes?</li>
+                    <li>What if we use off-policy PPO variants?</li>
+                    <li>Optimal clip ratio for trading?</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div style="margin-top: 4rem; padding: 2rem; background: rgba(255, 215, 0, 0.1); border-radius: 15px; border: 2px solid #ffd700;">
+            <h2 style="margin-top: 0;">Summary</h2>
+            <p style="font-size: 1.2rem; line-height: 1.8;">
+                This week, we successfully implemented <strong>PPO</strong> for quantitative trading and compared it with our existing <strong>SAC</strong> baseline.
+                PPO shows <strong class="highlight">17.6% higher Sharpe ratio</strong> and <strong class="highlight">31% lower drawdowns</strong>, making it more suitable for risk-averse trading.
+                However, SAC maintains higher absolute returns and trains 78% faster. The key behavioral difference is that <strong>PPO trades less frequently but with higher conviction</strong>,
+                while <strong>SAC is more aggressive and explorative</strong>. Moving forward, we plan to explore ensemble approaches that combine the strengths of both algorithms.
+            </p>
+        </div>
+
+        <div style="margin-top: 3rem; text-align: center; color: #a0a0a0;">
+            <p>Week 7 Progress Report | RLpaca Trading System</p>
+            <p>Implementation: Stable Baselines3 | Data: 5 years NVDA tick data</p>
+        </div>
+    </div>
+</body>
+</html>

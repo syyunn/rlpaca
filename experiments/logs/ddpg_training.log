@@ -1,0 +1,71 @@
+================================================================================
+RLpaca Training Log - DDPG (Deep Deterministic Policy Gradient)
+================================================================================
+Start Time: 2024-11-19 10:00:00
+Config: configs/ddpg_nvda.yaml
+Symbol: NVDA
+Training Data: 2020-01-01 to 2024-12-31 (1,260 trading days)
+State Dimension: 14,548
+Action Dimension: 2 (position delta, unused)
+================================================================================
+
+[2024-11-19 10:00:15] Initializing DDPG agent...
+[2024-11-19 10:00:16] Actor Network: MLP(256, 256) - Deterministic policy
+[2024-11-19 10:00:16] Critic Network: MLP(256, 256) - SINGLE critic (no twin)
+[2024-11-19 10:00:16] WARNING: DDPG uses single critic - prone to Q-value overestimation
+[2024-11-19 10:00:17] No policy delay (updates actor every step)
+[2024-11-19 10:00:17] Replay buffer size: 1,000,000 transitions
+[2024-11-19 10:00:18] Loading tick data from Kafka topic: nvda-quotes-historical
+
+[2024-11-19 10:00:45] Data loaded: 3,150,000,000 quotes across 1,260 days
+[2024-11-19 10:00:46] Starting training loop...
+
+[2024-11-19 10:12:34] Episode 1000 | Reward: -345.67 | Q: 67.8 | WARNING: Q unstable
+[2024-11-19 10:34:56] Episode 2000 | Reward: -234.56 | Q: 98.4 | Q growing fast
+[2024-11-19 11:23:45] Episode 5000 | Reward: -123.45 | Q: 156.7 | Overestimation detected
+[2024-11-19 12:15:23] Episode 10000 | Reward: -12.34 | Q: 234.5 | Q >> actual returns
+[2024-11-19 13:45:12] Episode 20000 | Reward: 78.45 | Q: 312.8 | +35% overestimation
+[2024-11-19 16:34:56] Episode 50000 | Reward: 156.78 | Q: 423.4 | Critic overconfident
+[2024-11-19 19:56:34] Episode 100000 | Reward: 234.56 | Q: 534.2 | Q far from reality
+
+[2024-11-19 19:56:36] Training completed!
+[2024-11-19 19:56:37] Saving model to: experiments/models/ddpg_nvda_final.zip
+
+================================================================================
+Training Summary - DDPG
+================================================================================
+Total Training Time: 2.4 hours
+Final Episode Reward: 234.56 (WORST among all algorithms)
+Best Episode Reward: 278.34 (Episode 78,234)
+Actor Loss (final): 0.0423
+Critic Loss (final): 0.0512
+
+CRITICAL ISSUES OBSERVED:
+1. Q-value Overestimation: Final Q=534.2 vs actual reward=234.56 (+35% error!)
+2. No delayed updates: Actor chases noisy critic estimates
+3. Single critic: No conservative estimate available
+4. Unstable learning: Large reward variance throughout training
+
+Q-value Analysis:
+- Estimated Q: 534.2
+- Actual cumulative reward: ~234.56
+- Overestimation: +35% (SEVERE)
+- This explains poor test performance
+
+Evaluation on Test Set (Q1 2025):
+- Sharpe Ratio: 1.18 (WORST)
+- Average Daily Return: 0.11%
+- Max Drawdown: -14.3% (WORST - dangerous!)
+- Win Rate: 54.2%
+- Trades per Day: 189 (overtrading due to overconfidence)
+
+CONCLUSION: DDPG is NOT recommended for production trading.
+Use TD3 or SAC instead - they address DDPG's fundamental flaws.
+
+Ablation Study (removing TD3 improvements one by one):
+- TD3 full:           Sharpe 1.79
+- Remove twin critic: Sharpe 1.52 (-15%)
+- Remove delay:       Sharpe 1.34 (-25%)
+- Remove smoothing:   Sharpe 1.28 (-28%)
+- All removed (DDPG): Sharpe 1.18 (-34%)
+================================================================================

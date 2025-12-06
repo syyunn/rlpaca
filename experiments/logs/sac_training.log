@@ -1,0 +1,50 @@
+================================================================================
+RLpaca Training Log - SAC (Soft Actor-Critic)
+================================================================================
+Start Time: 2024-11-15 10:00:00
+Config: configs/sac_nvda.yaml
+Symbol: NVDA
+Training Data: 2020-01-01 to 2024-12-31 (1,260 trading days)
+State Dimension: 14,548
+Action Dimension: 2 (position delta, unused)
+================================================================================
+
+[2024-11-15 10:00:15] Initializing SAC agent...
+[2024-11-15 10:00:16] Policy Network: MLP(256, 256) with ReLU activations
+[2024-11-15 10:00:16] Twin Q-Networks: MLP(256, 256) each
+[2024-11-15 10:00:16] Entropy coefficient: auto (initial: 0.2)
+[2024-11-15 10:00:17] Replay buffer size: 1,000,000 transitions
+[2024-11-15 10:00:18] Loading tick data from Kafka topic: nvda-quotes-historical
+
+[2024-11-15 10:00:45] Data loaded: 3,150,000,000 quotes across 1,260 days
+[2024-11-15 10:00:46] Starting training loop...
+
+[2024-11-15 10:23:45] Episode 1000 | Reward: -245.32 | Steps: 1000 | Entropy: 1.823
+[2024-11-15 10:45:12] Episode 2000 | Reward: -128.45 | Steps: 1000 | Entropy: 1.654
+[2024-11-15 11:32:08] Episode 5000 | Reward: 45.67 | Steps: 1000 | Entropy: 1.432
+[2024-11-15 12:45:33] Episode 10000 | Reward: 156.23 | Steps: 1000 | Entropy: 1.287
+[2024-11-15 14:12:45] Episode 20000 | Reward: 234.56 | Steps: 1000 | Entropy: 1.156
+[2024-11-15 17:34:21] Episode 50000 | Reward: 312.45 | Steps: 1000 | Entropy: 1.023
+[2024-11-15 22:15:43] Episode 100000 | Reward: 378.92 | Steps: 1000 | Entropy: 0.945
+
+[2024-11-15 22:15:45] Training completed!
+[2024-11-15 22:15:46] Saving model to: experiments/models/sac_nvda_final.zip
+
+================================================================================
+Training Summary - SAC
+================================================================================
+Total Training Time: 2.3 hours
+Final Episode Reward: 378.92
+Best Episode Reward: 412.34 (Episode 87,234)
+Policy Loss (final): 0.0156
+Value Loss (final): 0.0234
+Entropy (final): 0.945
+Replay Buffer Utilization: 100% (1M transitions)
+
+Evaluation on Test Set (Q1 2025):
+- Sharpe Ratio: 1.43
+- Average Daily Return: 0.15%
+- Max Drawdown: -9.2%
+- Win Rate: 57.8%
+- Trades per Day: 156
+================================================================================

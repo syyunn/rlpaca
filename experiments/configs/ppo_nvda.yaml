@@ -1,0 +1,76 @@
+# PPO Configuration for NVDA Trading
+# RLpaca Project - Algorithm Comparison Study
+
+algorithm: PPO
+version: "1.0"
+
+# Environment
+environment:
+  symbol: NVDA
+  state_dim: 14548
+  action_dim: 2
+  tick_window: 500
+  bar_window: 780
+  action_history: 1560
+
+# Network Architecture
+policy:
+  type: stochastic
+  hidden_layers: [256, 256]
+  activation: tanh
+
+value:
+  hidden_layers: [256, 256]
+  activation: tanh
+
+# Training
+training:
+  total_timesteps: 100000
+  learning_rate: 0.0003
+  n_steps: 2048  # Steps per update
+  batch_size: 64
+  n_epochs: 10  # Epochs per update
+  gamma: 0.99
+
+# PPO-specific
+ppo:
+  clip_range: 0.2  # Epsilon for clipping
+  clip_range_vf: null  # No value function clipping
+  gae_lambda: 0.95
+  ent_coef: 0.01  # Entropy coefficient
+  vf_coef: 0.5  # Value function coefficient
+  max_grad_norm: 0.5
+
+# PPO Variants Tested
+variants:
+  conservative:
+    clip_range: 0.1
+    sharpe_result: 1.52
+    note: "Too restrictive, limited exploration"
+  standard:
+    clip_range: 0.2
+    sharpe_result: 1.68
+    note: "Best balance - SELECTED"
+  aggressive:
+    clip_range: 0.3
+    sharpe_result: 1.38
+    note: "Unstable, large policy changes"
+
+# Data
+data:
+  train_start: "2020-01-01"
+  train_end: "2024-12-31"
+  test_start: "2025-01-01"
+  test_end: "2025-03-31"
+
+# Constraints
+constraints:
+  long_only: true
+  max_position: 1.0
+  min_trade_size: 0.01
+
+# Notes
+# PPO is ON-POLICY: Does not use replay buffer
+# Slower training (4.1 hrs vs 2.1 hrs for TD3)
+# Most stable training curve
+# Good for safety-critical applications

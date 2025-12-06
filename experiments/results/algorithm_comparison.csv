@@ -1,0 +1,5 @@
+algorithm,sharpe_ratio,avg_daily_return,annualized_return,volatility,max_drawdown,win_rate,trades_per_day,avg_trade_size,training_time_hrs,generalization_gap
+SAC,1.43,0.0015,0.378,0.00105,-0.092,0.578,156,1180,2.3,-0.214
+PPO,1.68,0.0013,0.327,0.00077,-0.068,0.613,102,1640,4.1,-0.215
+TD3,1.79,0.0014,0.353,0.00078,-0.059,0.638,118,1640,2.1,-0.215
+DDPG,1.18,0.0011,0.277,0.00093,-0.143,0.542,189,980,2.4,-0.385

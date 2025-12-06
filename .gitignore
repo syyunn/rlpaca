@@ -1,6 +1,14 @@
-# Environment variables
+# Environment variables - NEVER COMMIT THESE
 .env
 .env.local
+.env.production
+.env.development
+*.env
+
+# API Keys and Secrets
+**/credentials.json
+**/secrets.yaml
+**/api_keys.txt
 
 # Python
 __pycache__/
@@ -51,7 +59,8 @@ postgres-data/
 pgadmin-data/full_1epoch_model.zip
 CLAUDE.md
 
-*.zip
+# Keep experiment results (remove this exclusion)
+# *.zip
 
 # Archive and test files
 archive/
@@ -70,3 +79,15 @@ learning_curve*.png
 # Extended training logs
 extended_training.log
 big_network_overfit.log
+
+*.pt
+*.png
+
+# Keep experiment configs, results, and logs
+!experiments/**/*.yaml
+!experiments/**/*.csv
+!experiments/**/*.log
+!experiments/**/.gitkeep
+
+# Ignore other JSON files but keep experiment results
+*.jsonl
